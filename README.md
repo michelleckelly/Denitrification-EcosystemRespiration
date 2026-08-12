@@ -1,4 +1,4 @@
-# Stream Ecosystem Respiration and Denitrification Across Ecoregions of the United States
+# Relationships between Ecosystem Respiration and Denitrification in Streams
 
 ## Description
 This repository houses all scripts and data for the manuscript "Ecosystem Respiration Does Not Promote Denitrification in Streams: Insights Gained from Supervised Machine Learning", which is currently in review.
