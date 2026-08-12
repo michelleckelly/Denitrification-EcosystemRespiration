@@ -12,4 +12,4 @@ For the use and reuse of raw data, please see the fully documented datasets avai
 > Kelly, M.C. and Marcarelli, A.M. Stream metabolism (gross primary production, ecosystem respiration, reaeration) parameters and modeled rates from streams across ecoclimatic domains in the United States, 2017-2019 ver 1. Environmental Data Initiative.
 
 ## Additional notes
-Wrapper functions used to pull metabolism parameter data from the NEON API and reformat it for modeling with streamMetabolizer are available as an R package here: https://github.com/michelleckelly/neonfluxr
+Wrapper functions used in `1_model-metabolism.Rmd` to pull metabolism parameter data from the NEON API and reformat it for modeling with streamMetabolizer are available as an R package here: https://github.com/michelleckelly/neonfluxr
