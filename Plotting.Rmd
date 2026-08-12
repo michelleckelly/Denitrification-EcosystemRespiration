@@ -1,0 +1,2178 @@
+```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
+# Load libraries
+library(tidyverse)
+library(lubridate)
+library(plotrix)
+library(gridExtra)
+library(grid)
+library(ggmap)
+library(ggrepel)
+library(maps)
+library(corrplot)
+library(cowplot)
+library(svMisc)
+library(ggfortify)
+library(AppliedPredictiveModeling)
+library(caret)
+library(knitr)
+library(kableExtra)
+library(ggpubr)
+
+options(digits=3) # Change rounding to 3 digits
+
+# Colorblind-friendly palette developed by IBM, 2, 4 and 5 color version
+ibm2 <- c("#648FFF", "#ffb000")
+ibm3 <- c("#DC267F", "#648FFF", "#FFB000")
+ibm4 <- c("#785EF0", "#DC267F", "#FE6100", "#FFB000")
+ibm5 <- c("#648FFF", "#785EF0", "#DC267F", "#FE6100", "#FFB000")
+scalePal <- c("#565554","#B6C649","#785EF0")
+pal3 <- c("#D84727","#FFB000","#2E4756")
+
+```
+
+```{r loadDatasets}
+### Load site information
+CAREER_sites <- read_csv("data/CAREER_SiteAttributes.csv")
+CAREER_sites$date <- mdy(CAREER_sites$date)
+
+### Load CAREER data matrix ####################################################
+CAREERmatrix <- 
+  read_csv(file = "data/CAREER_reachModeling.csv") %>%
+  mutate(ER_daily_mean = abs(ER_daily_mean))
+```
+
+# Summary statistics
+
+```{r mean and range}
+## Nitrate ##
+min(CAREERmatrix$NO2NO3_ugL, na.rm = T)
+quantile(CAREERmatrix$NO2NO3_ugL, na.rm = T)
+max(CAREERmatrix$NO2NO3_ugL, na.rm = T)
+# Max NO3 stream
+CAREERmatrix %>% select(SiteName, NO2NO3_ugL) %>% arrange(NO2NO3_ugL)
+
+## DOC
+quantile(CAREERmatrix$DOC_mgL, na.rm = T)
+
+## Denitrification
+# CAREER
+max(CAREERmatrix$Denitrification_amended_mgNm2hr_mean, na.rm = T)
+sd(CAREERmatrix$Denitrification_amended_mgNm2hr_mean, na.rm = T)
+quantile(CAREERmatrix$Denitrification_amended_mgNm2hr_mean, na.rm = T) 
+mean(CAREERmatrix$Denitrification_amended_mgNm2hr_mean, na.rm = T) 
+sum(CAREERmatrix$Denitrification_amended_mgNm2hr_mean == 0, na.rm = T)
+
+## Respiration
+# CAREER
+max(CAREERmatrix$ER_daily_mean, na.rm = T)
+sd(CAREERmatrix$ER_daily_mean, na.rm = T)
+quantile(CAREERmatrix$ER_daily_mean, na.rm = T)
+mean(CAREERmatrix$ER_daily_mean, na.rm = T)
+
+denit90 <- quantile(CAREERmatrix$Denitrification_amended_mgNm2hr_mean, 
+                    na.rm = T, 0.9)
+er90 <- quantile(CAREERmatrix$ER_daily_mean, na.rm = T, 0.9)
+er10 <- quantile(CAREERmatrix$ER_daily_mean, na.rm = T, 0.1)
+
+CAREERmatrix$Denitrification_amended_mgNm2hr_mean >= denit90 &
+  CAREERmatrix$ER_daily_mean <= er10
+sum(CAREERmatrix$Denitrification_amended_mgNm2hr_mean >= denit90 &
+  CAREERmatrix$ER_daily_mean >= er90, na.rm = T)
+
+# Strerams with 90th percentile denitrification
+CAREERmatrix$ER_daily_mean[CAREERmatrix$Denitrification_amended_mgNm2hr_mean >=
+  quantile(CAREERmatrix$Denitrification_amended_mgNm2hr_mean,na.rm = T, 0.9)]
+CAREERmatrix$ER_daily_mean[CAREERmatrix$Denitrification_amended_mgNm2hr_mean >=
+  quantile(CAREERmatrix$Denitrification_amended_mgNm2hr_mean,na.rm = T, 0.9)]
+
+CAREERmatrix %>%
+  filter(CAREERmatrix$ER_daily_mean < 1)
+sum(!is.na(CAREERmatrix$ER_daily_mean))
+
+
+mod <- lm(ER_daily_mean ~ Denitrification_amended_mgNm2hr_mean, 
+          data = CAREERmatrix)
+summary(mod)
+```
+
+# Conceptual figure for scale
+
+```{r fig-conceptual-scale}
+library(sf)
+library(terra)
+library(tidyterra)
+
+# Load gray earth with shaded relief raster file from 
+# https://www.naturalearthdata.com/downloads/10m-raster-data/10m-gray-earth/
+relief_landscape <- rast("data/map/GRAY_HR_SR_OB_DR.tif")
+# Crop raster to continental US
+relief_landscape_crop <- terra::crop(relief_landscape, c(-131, -60, 20, 60), snap = "near")
+
+# Load USGS raster file for BLDE elevation
+relief_watershed <- rast("data/map/viz.USGS1m_hillshade_watershed_BLDE.tif")
+# Change coordinate reference system
+relief_watershed <- project(relief_watershed, "epsg:4326")
+
+# Yellowstone aerial photo - for local scale
+relief_YELL <- rast("data/map/2020_YELL_3_532000_4977000_image_greyscale.tif")
+relief_YELL <- project(relief_YELL, "epsg:4326")
+
+# Load NEON domains (downloaded from their arcGIS webpage)
+domains <- 
+  read_sf("data/map/NEONDomains/NEON_Domains.shp")
+# Crop domains to continental US
+domains_crop <- st_crop(domains, 
+                        xmin = -131, xmax = -60, 
+                        ymin = 50, ymax = 20)
+
+# Load NEON watersheds (downloaded from their arcGIS webpage)
+watersheds <- 
+  read_sf("data/map/NEONAquaticWatershed/NEON_Aquatic_watershed.shp")
+# Crop watersheds to Blacktail Deer
+watersheds_crop <- watersheds[watersheds$SiteID == "BLDE",]
+
+drain <- 
+  read_sf("data/map/NEONAquaticWatershed/NEON_Aquatic_DrainageLine.shp")
+drain_crop <- drain[drain$SiteID == "BLDE",]
+
+# Load NEON aquatic reaches (downloaded from their arcGIS webpage)
+reach <- 
+  read_sf("data/map/NEONAquaticReach/Aquatic_StreamReach.shp")
+# Crop to BLDE
+reach_crop <- reach[reach$SiteID == "BLDE",]
+
+# Continental map
+#a <- 
+  ggplot() +
+  geom_spatraster(data = relief_landscape_crop, maxcell = 5e7) +
+  geom_sf(data = filter(domains_crop, DomainID == 12), 
+          color = "white", fill = NA, linewidth = 0.6, alpha = 0.2) +
+  geom_sf(data = filter(domains_crop, DomainID == 12), 
+          color = "#785EF0", fill = NA, linewidth = 0.4) +
+  ggspatial::annotation_scale() +
+  #scale_fill_viridis_c(option = "F") +
+  scale_fill_continuous(palette = c( "grey20", "white")) +
+  coord_sf(datum = sf::st_crs(4326), xlim = c(-129, -100), ylim = c(30, 55)) +
+  theme_map() +
+  theme(panel.border = element_rect(color = "black", fill = NA),
+        legend.position = "none")
+# Save
+ggsave("outputs/figure_conceptual_continental_2.png", width = 2, height = 2, 
+       units = "in", dpi = 500)
+
+# Landscape map
+#b <-
+  ggplot() +
+  #geom_spatraster(data = lidar_YELL) +
+  geom_spatraster(data = relief_watershed) +
+  geom_sf(data = drain_crop, color = "black", linewidth = 0.1, alpha = 0.3) +
+  geom_sf(data = watersheds_crop, color = "white", fill = NA, 
+          linewidth = 0.6, alpha = 0.2) +
+  geom_sf(data = watersheds_crop, color = "#FE6100", fill = NA, 
+          linewidth = 0.4) +
+ # annotate("rect", xmin = -110.58, xmax = -110.595, 
+  #              ymin = 44.8755, ymax = 44.8925, 
+   #        color = "black", fill = "white", linewidth = 0.1) +
+  #geom_sf(data = rivers_crop, color = "#648FFF", linewidth = 0.5) +
+  ggspatial::annotation_scale() +
+  scale_fill_continuous(palette = c("black", "white")) +
+  coord_sf(datum = sf::st_crs(4326), 
+           xlim = c(-110.66, -110.48), ylim = c(44.83, 44.97)
+          ) +
+  theme_map() +
+  theme(panel.border = element_rect(color = "black", fill = NA),
+        legend.position = "none")
+# Save
+ggsave("outputs/figure_conceptual_landscape_2.png", width = 2, height = 2, 
+       units = "in", dpi = 500)
+
+# Local map
+#c <- 
+  ggplot() +
+  #geom_sf(data = rivers_crop, color = "#648FFF", linewidth = 0.5) +
+  geom_spatraster_rgb(data = relief_YELL) +
+  geom_sf(data = drain_crop, color = "black", linewidth = 0.2, alpha = 0.4) +
+  geom_sf(data = reach_crop, color = "white", fill = NA, 
+          linewidth = 0.8, alpha = 0.2) +
+  geom_sf(data = reach_crop, color = "#FFB000", fill = NA, 
+          linewidth = 0.5) +
+  #geom_sf(data = thalweg,  color = "black") +
+  ggspatial::annotation_scale() +
+  coord_sf(datum = sf::st_crs(4326), 
+           xlim = c(-110.592, -110.5825), ylim = c(44.9461, 44.9541)
+           ) +
+  theme_map() +
+  #scale_fill_continuous(palette = c("black", "white")) +
+  theme(panel.border = element_rect(color = "black", fill = NA),
+        #legend.position = "none"
+        )
+# Save
+ggsave("outputs/figure_conceptual_local_2.png", width = 2, height = 2, 
+       units = "in", dpi = 500)
+
+grid.arrange(a,b,c, nrow = 1)
+
+ggplot() +
+  geom_spatraster_rgb(data = relief_HOPB)
+```
+
+# Map
+
+```{r Fig2 Map}
+# Load urbnmapr package
+#devtools::install_github("UrbanInstitute/urbnmapr")
+library(urbnmapr)
+library(sf)
+
+# Get USA map
+states_sf <- 
+  urbnmapr::get_urbn_map("territories_states", sf = TRUE)
+# Get world map
+world.map <- map_data("world") 
+# Get world oceans
+ocean_sf <- 
+  rnaturalearth::ne_download(scale = 10, type = "ocean", category = "physical")
+# Get world lakes (big ones)
+lake_sf <- 
+  rnaturalearth::ne_download(scale = 10, type = "lakes", category = "physical")
+# Load NEON domains (downloaded from their arcGIS webpage)
+domains <- 
+  sf::read_sf("data/map/NEONDomains/NEON_Domains.shp")
+
+# Exclude the USA territories we don't want 
+# (we want PR but not Hawaii, & not other territories)
+states_contig <- 
+  filter(states_sf, !(state_name %in% c("Hawaii", "Guam", "Virgin Islands", 
+                                        "Mariana Islands", "American Samoa",
+                                        "Alaska", "Puerto Rico")))
+
+# Subset continental US domains
+domains_contUS <-
+  st_crop(domains, xmin = -130, xmax = -60, ymin = 20, ymax = 55) 
+# Subset alaska domains
+domains_AK <- 
+  st_crop(domains, xmin = -180, xmax = -120, ymin = 50, ymax = 80)
+# Subset PR domains
+domains_PR <- 
+  st_crop(domains, xmin = -70, xmax = -60, ymin = 10, ymax = 20)
+
+# Transform site points into shape file
+sites <- 
+  CAREER_sites %>%
+  select(SiteName, Longitude, Latitude) %>% 
+  distinct() %>%
+  mutate(SiteName = gsub(" River", " R.", SiteName),
+         SiteName = gsub(" Creek", " Cr.", SiteName),
+         SiteName = gsub(" Springs", " Spr.", SiteName),
+         SiteName = gsub("South", "S.", SiteName),
+         SiteName = gsub(" Brook", " Br.", SiteName),
+         SiteName = gsub("Lower Knowton Fork ", "LKF ", SiteName)
+         )
+
+sites_sf <- 
+  sites %>% 
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326)
+
+# Subset continental US sites
+sites_cont <- st_crop(sites_sf, xmin = -130, xmax = -60, ymin = 20, ymax = 55) 
+# Subset AK sites
+sites_AK <- st_crop(sites_sf, xmin = -180, xmax = -120, ymin = 50, ymax = 80)
+# Subset PR sites
+sites_PR <- st_crop(sites_sf, xmin = -70, xmax = -60, ymin = 10, ymax = 20)
+
+# Change projection of ocean
+ocean_sf_2163 <- st_transform(ocean_sf, crs = 2163)
+# Change projection of lakes
+lake_sf_2163 <- st_transform(lake_sf, crs = 2163)
+
+# Map continental US
+a <-
+  ggplot() +
+  geom_sf(data = ocean_sf_2163, fill = "grey80", color = "grey80",
+          linewidth = 0.1) +
+  #geom_sf(data = states_contig) +
+  geom_sf(data = domains_contUS, fill = "white", color = "grey80",
+          linewidth = 0.2) +
+    geom_sf(data = lake_sf_2163, fill = "grey60", color = NA,
+          linewidth = 0.1) +
+  # Point on site location
+  geom_sf(data = sites_cont, shape = 16, size = 1, color = "black") +
+  # Add site names
+  geom_text_repel(data = sites_cont, 
+                   stat = "sf_coordinates",
+                  aes(label = SiteName, geometry = geometry), 
+                  box.padding = 0.1, size = 2, segment.color = "black", 
+                  max.overlaps = 80, min.segment.length = 0.1,
+                  bg.color = "white", bg.r = 0.2) +
+  ggspatial::annotation_scale() +
+  scale_x_continuous(breaks = c(-110, -95, -80)) +
+  scale_y_continuous(breaks = c(20, 30, 40, 50)) +
+  coord_sf(datum = sf::st_crs(4326),
+  xlim = c(-2E6, 2.6E6),
+  ylim = c(-3E6, 1.6E6)) +
+  labs(tag = "a") +
+  #theme_map() +
+  theme(panel.border = element_rect(color = "grey60", fill = "white"),
+        axis.ticks = element_blank(),
+        panel.background = element_rect(color ="white", fill = "grey95"),
+        panel.grid = element_line(color = "white", linewidth = 0.25),
+        plot.background = element_rect(color = "white", fill = "white"),
+        axis.text = element_text(color = "grey30", size = 6),
+        axis.title = element_blank(),
+        legend.position = "none",
+        legend.background = element_rect(color = NA, fill = NA),
+        plot.tag.position = c(0.02, 0.96),
+        plot.tag = element_text(face = "plain", size = 10))
+
+# Map Alaska
+b <- 
+  ggplot() +
+  geom_polygon(data = world.map, aes(x = long, y = lat, group = group),
+               fill = "grey80", color = "grey80",
+               linewidth = 0.1) +
+  geom_sf(data = domains_AK, fill = "white", color = "grey80",
+          linewidth = 0.2) +
+  # Point on site location
+  geom_sf(data = sites_AK, shape = 16, size = 1, color = "black") +
+  # Add site names
+  geom_text_repel(data = sites_AK, 
+                   stat = "sf_coordinates",
+                  aes(label = SiteName, geometry = geometry), 
+                  box.padding = 0.1, size = 2, segment.color = "black", 
+                  max.overlaps = 80, min.segment.length = 0.1,
+                  bg.color = "white", bg.r = 0.2) +
+  ggspatial::annotation_scale() +
+  scale_x_continuous(breaks = c(-145, -160, -175)) +
+  scale_y_continuous(breaks = c(50,60, 70)) +
+  coord_sf(datum = sf::st_crs(4326), 
+           xlim = c(-183, -134.5), 
+           ylim = c(47, 78)) +
+  scale_color_manual(values = c("grey10")) +
+  labs(tag = "b") +
+  theme_bw() +
+  #theme_map() +
+  theme(panel.border = element_rect(color = "grey60", fill = "white"),
+        axis.ticks = element_blank(),
+        panel.background = element_rect(color ="white", fill = "grey95"),
+        panel.grid = element_line(color = "white", linewidth = 0.25),
+        plot.background = element_rect(color = "white", fill = "white"),
+        axis.text = element_text(color = "grey30", size = 6),
+        axis.title = element_blank(),
+        legend.position = "none",
+        legend.background = element_rect(color = NA, fill = NA),
+        plot.tag.position = c(0.05, 0.96),
+        plot.tag = element_text(face = "plain", size = 10))
+
+# Puerto Rico
+c <- 
+  ggplot() +
+  geom_polygon(data = world.map, aes(x = long, y = lat, group = group),
+               fill = "grey80", color = "grey80", linewidth = 0.1) +
+  geom_sf(data = domains_PR, color = "grey60", fill = "white",
+          linewidth = 0.2) +
+  
+  # Point on site location
+  geom_sf(data = sites_PR, shape = 16, size = 1, color = "black") +
+  # Add site names
+  geom_text_repel(data = sites_PR, 
+                   stat = "sf_coordinates",
+                  aes(label = SiteName, geometry = geometry), 
+                  box.padding = 0.1, size = 2, segment.color = "black", 
+                  max.overlaps = 80, min.segment.length = 0.1,
+                  bg.color = "white", bg.r = 0.2) +
+  scale_x_continuous(breaks = c(-65, -66.5, -68)) +
+  scale_y_continuous(breaks = c(17, 18)) +
+  coord_sf(datum = sf::st_crs(4326), 
+           xlim = c(-68.2, -64.9), 
+           ylim = c(17, 19)) +
+  ggspatial::annotation_scale() +
+  labs(tag = "c") +
+  scale_color_manual(values = c("grey10")) +
+  #theme_map() +
+  theme(panel.border = element_rect(color = "grey60", fill = "white"),
+        axis.ticks = element_blank(),
+        panel.background = element_rect(color ="white", fill = "grey95"),
+        panel.grid = element_line(color = "white", linewidth = 0.25),
+        plot.background = element_rect(color = "white", fill = "white"),
+        axis.text = element_text(color = "grey30", size = 6),
+        axis.title = element_blank(),
+        legend.position = "none",
+        legend.background = element_rect(color = NA, fill = NA),
+        plot.tag.position = c(0.05, 0.9),
+        plot.tag = element_text(face = "plain", size = 10))
+
+layout_grid <- rbind(c(1,1,2),
+                     c(1,1,2),
+                     c(1,1,3))
+grob <- grid.arrange(a,b,c, layout_matrix = layout_grid)
+ggsave(grob, filename = "outputs/figure_map_sites.png", 
+       width = 6, height = 4, bg = "white",
+       units = "in", dpi = 1200)
+```
+
+# Denitrification and ER rates
+
+```{r Fig3 denit & ER scatter}
+## Denitrification ##
+# Label points above a threshold
+cutD <- quantile(CAREERmatrix$Denitrification_amended_mgNm2hr_mean, na.rm =T, 
+                 probs = c(0.9)) # 90th percentile
+cutER <- quantile(CAREERmatrix$ER_daily_mean, na.rm =T, probs = c(0.9)) # 90th percentile
+
+## Scatterplot denit v. ER ##
+ggplot(data = CAREERmatrix, aes(x = ER_daily_mean, 
+                                  y = Denitrification_amended_mgNm2hr_mean)) +
+  #geom_vline(aes(xintercept = cutER), linetype = 1, color = "#DC267F", 
+   #          alpha = 0.5, linewidth = 0.25) +
+  annotate("rect", xmin = cutER, xmax = Inf, ymin = -Inf, ymax = Inf,
+           alpha = 0.1, fill = "#DC267F") +
+  #geom_hline(aes(yintercept = cutD), linetype = 1, color = "#648FFF",
+  #           alpha = 0.5, linewidth = 0.25) +
+  annotate("rect", ymin = cutD, ymax = Inf, xmin = -Inf, xmax = Inf,
+           alpha = 0.1, fill = "#648FFF") +
+  ggpubr::stat_cor(aes(label = paste(..rr.label.., ..p.label.., sep = "*`,`~")),
+                   #label.x = log10(10), label.y = log10(50), 
+                   label.x = 0, label.y = 16, 
+                   size = 3.5, color = "grey10",  method = "spearman",
+                   r.accuracy = 0.01, p.accuracy = 0.01) +
+  # Labels
+  geom_text_repel(aes(label = 
+                         ifelse(Denitrification_amended_mgNm2hr_mean  >= cutD, 
+                                SiteName, "")),
+                   size = 3.5,
+                   min.segment.length = unit(4, 'lines'),
+                  color = "#648FFF", 
+                  bg.color = "white", bg.r = 0.2) +
+    geom_text_repel(aes(label = 
+                         ifelse(ER_daily_mean  >= cutER, 
+                                SiteName, "")),
+                   size = 3.5,
+                   min.segment.length = unit(4, 'lines'),
+                  color = "#DC267F", 
+                  bg.color = "white", bg.r = 0.2) +
+  # Points
+    geom_point(shape = 16, size = 2.5, alpha = 0.9, color = "grey60") +
+    geom_point(data = filter(CAREERmatrix, Denitrification_amended_mgNm2hr_mean 
+                             >= cutD), 
+               shape = 16, size = 2.5,  color = "#648FFF") +
+    geom_point(data = filter(CAREERmatrix, ER_daily_mean  >= cutER), 
+               shape = 16, size = 2.5,  color = "#DC267F") +
+  # Axis labels
+  ylab(expression("Denitrification (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  xlab(expression("ER (g-"*"O"[2]~m^{-2}~"d"^{-1}*")")) +
+  theme_minimal() +
+  theme(axis.text = element_text(color = "grey10", size = 10),
+        plot.tag = element_text(size = 10),
+        panel.grid = element_line(linewidth = 0.25),
+        axis.line =  element_line(color = "grey80", linewidth = 0.25),
+        axis.title = element_text(size = 12),
+        legend.position = "none",
+        plot.margin=unit(rep(0.05,4), "in"))
+
+ggsave(filename = "outputs/figure_denit-ER_boxplots_scatterplot.png",
+       width = 4.5, height = 4.5, units = "in", dpi = 300)
+```
+
+```{r Fig6 variableImportance denitrification}
+library(emojifont)
+
+# Load variable importance
+modelResults <- 
+  read_csv("data/predictiveModeling/DenitModeling_CAREER_2026-04-10.csv") %>%
+  mutate(feature = recode(feature, 
+                          K600_daily_mean = "K600",
+                          SedCover_perc = "Sediment cover",
+                          RockCover_perc = "Rock cover",
+                          LandCover_Crop_perc = "Agricultural land",
+                          DO_mgL_mean = "O₂",
+                          NH4_ugL = "NH₄",
+                          TransectDepth_Avg_cm = "Depth",
+                          ER_daily_mean = "ER",
+                          TDN_mgL = "TDN",
+                          Mean_Slope = "Slope",
+                          NO2NO3_ugL = "NO₂+NO₃",
+                          LandCover_Built_perc = "Urban land",
+                          Discharge_m3s = "Q",
+                          VegCover_perc = "Macro. cover",
+                          SRP_ugL = "SRP",
+                          CanopyCover_Avg_perc = "Canopy cover",
+                          SedimentCover_perc = "Sediment cover",
+                          ReachWidth_Avg_m = "Stream width",
+                          DIN_SRP = "DIN:SRP",
+                          DOC_mgL = "DOC",
+                          CWDCover_perc = "Woody cover",
+                          WaterTemp_C_mean = "Temp.",
+                          WatershedArea_km2 = "Watershed area",
+                          TDN_TP = "TDN:TP"),
+         feature = factor(feature, levels = feature)) %>%
+  dplyr::arrange(desc(importance))
+
+a <-
+  ggplot(data = modelResults, aes(y = feature, x = importance)) +
+  geom_point(size = 4, shape = 16, color = "#648FFF") +
+  geom_linerange(aes(xmin = importance.05, xmax = importance.95),
+                 color = "#648FFF") +
+  labs(x = expression("Importance ("*Delta*"MSE)"), 
+       tag = "a") +
+  scale_y_discrete(limits = rev) +
+  theme(legend.position = "none") +
+  theme_minimal() +
+  theme(legend.title = element_blank(),
+        legend.position = c(0.7, 0.06),
+        legend.key.size = unit(0.1, 'cm'),
+        panel.grid.minor = element_blank(),
+         axis.line =  element_line(color = "grey80", linewidth = 0.25),
+        axis.title.y = element_blank(),
+        panel.grid.major = element_line(linewidth = 0.25))
+
+load("data/predictiveModeling/RWorkspace_DenitModeling_CAREER_2026-04-10.RData")
+
+# Get partial dependence plots for important predictors
+library(pdp)
+
+uncenterscale <- function(transformed_data, orig_mean, orig_sd){
+    transformed_data * orig_sd + orig_mean}
+
+PDPplot <- function(varname, orig_data){
+  # Compute
+  partialout <-
+    partial(mod_bestfit, pred.var = varname, 
+            type = "regression")
+  names(partialout) <- c("xvar", "yhat")
+  
+  # Get the reverse-transformed data variable
+  meval <- mean(getElement(orig_data, varname), na.rm = TRUE) 
+  sdval <- sd(getElement(orig_data, varname), na.rm = TRUE)
+  
+  partialout <-
+    partialout %>%
+    mutate(xvar_trans = uncenterscale(xvar, orig_mean = meval, orig_sd = sdval)) 
+  
+  plotout <-
+    ggplot(data = partialout, aes(x = xvar_trans, y = yhat)) +
+    geom_hline(yintercept = 0, color = "grey", linewidth = 0.1) +
+    geom_rug(alpha = 0.5, sides = "l") +
+    scale_y_continuous(limits = c(2,4.5), breaks = c(2,3,4)) +
+    geom_line() +
+    #stat_summary(fun.y = mean, geom = "line", color = "#519DAA",linetype = 2) +
+    labs(x = varname#, y = expression(Delta*"Rate (%)")
+         ) +
+    theme_minimal() +
+    theme(panel.grid.major = element_line(linewidth = 0.25),
+          panel.grid.minor = element_blank())
+  
+  return(plotout)
+}
+
+b <-
+  PDPplot("K600_daily_mean", data_denit) +
+  geom_vline(xintercept = 0, color = "grey", linewidth = 0.1) +
+  geom_rug(alpha = 0.5, sides = "l", color = "#648FFF") +
+    geom_line(color = "#648FFF") +
+  labs(tag = "b", x = expression(K[600]*" ("*d^{-1}*")"),
+       y = expression("Rate (mg-N"~m^{-2}~"h"^{-1}*")"))
+  
+c <-
+  PDPplot("SedimentCover_perc", data_denit) +
+  geom_vline(xintercept = 0, color = "grey", linewidth = 0.1) +
+  geom_rug(alpha = 0.5, sides = "l", color = "#648FFF") +
+    geom_line(color = "#648FFF") +
+  labs(tag = "c", x = "Sediment cover (%)",
+       y = expression("Rate (mg-N"~m^{-2}~"h"^{-1}*")"))
+
+d <-
+  PDPplot("RockCover_perc", data_denit) +
+  geom_vline(xintercept = 0, color = "grey", linewidth = 0.1) +
+  geom_rug(alpha = 0.5, sides = "l", color = "#648FFF") +
+    geom_line(color = "#648FFF") +
+  labs(tag = "d", x = "Rock cover (%)",
+       y = expression("Rate (mg-N"~m^{-2}~"h"^{-1}*")"))
+
+e <- 
+  PDPplot("LandCover_Crop_perc", data_denit) +
+  geom_vline(xintercept = 0, color = "grey", linewidth = 0.1) +
+  geom_rug(alpha = 0.5, sides = "l", color = "#648FFF") +
+    geom_line(color = "#648FFF") +
+  labs(tag = "e", x = "Agricultural land (%)",
+       y = expression("Rate (mg-N"~m^{-2}~"h"^{-1}*")"))
+
+f <- 
+  PDPplot("DO_mgL_mean", data_denit) +
+  geom_rug(alpha = 0.5, sides = "l", color = "#648FFF") +
+    geom_line(color = "#648FFF") +
+  labs(tag = "f", x = expression(O[2]*" (mg "*L^{-1}*")"),
+       y = expression("Rate (mg-N"~m^{-2}~"h"^{-1}*")"))
+
+g <- 
+  PDPplot("NH4_ugL", data_denit) +
+  geom_vline(xintercept = 0, color = "grey", linewidth = 0.1) +
+  geom_rug(alpha = 0.5, sides = "l", color = "#648FFF") +
+    geom_line(color = "#648FFF") +
+  labs(tag = "g", x = expression(NH[4]^{"+"}*" ("*mu*"g-N "*L^{-1}*")"),
+       y = expression("Rate (mg-N"~m^{-2}~"h"^{-1}*")"))
+
+h <- 
+  PDPplot("DOC_mgL", data_denit) +
+  geom_rug(alpha = 0.5, sides = "l", color = "#648FFF") +
+    geom_line(color = "#648FFF") +
+  labs(tag = "h", x = expression("DOC (mg "*L^{-1}*")"),
+       y = expression("Rate (mg-N"~m^{-2}~"h"^{-1}*")"))
+
+i <- 
+  PDPplot("NO2NO3_ugL", data_denit) +
+  geom_vline(xintercept = 0, color = "grey", linewidth = 0.1) +
+  geom_rug(alpha = 0.5, sides = "l", color = "#648FFF") +
+    geom_line(color = "#648FFF") +
+  labs(tag = "i", x = expression(NO[2] + NO[3]^{"-"}*" ("*mu*"g-N "*L^{-1}*")"),
+       y = expression("Rate (mg-N"~m^{-2}~"h"^{-1}*")"))
+
+grob <- grid.arrange(a, b, c, d, e, f, g, h, i,
+             layout_matrix = rbind(c(rep(1,3),rep(c(2,3),each = 2)),
+                                   c(rep(1,3),rep(c(4,5),each = 2)),
+                                   c(rep(1,3),rep(c(6,7),each = 2)),
+                                   c(rep(1,3),rep(c(8,9),each = 2))))
+
+ggsave(grob, filename = "outputs/figure_predmod_denitrif.png", width = 7, 
+       height = 8, units = "in", dpi = 600)
+```
+
+```{r variable importance respiration}
+library(emojifont)
+
+# Load variable importance for ER
+modelResults <- 
+  read_csv("data/predictiveModeling/RespirationModeling_CAREER_2026-04-10.csv") %>%
+  mutate(feature = recode(feature, 
+                          RockCover_perc = "Rock cover",
+                          LandCover_Built_perc = "Urban land",
+                          Discharge_m3s = "Q",
+                          VegCover_perc = "Macrophyte cover",
+                          Mean_Slope = "Slope",
+                          SedCover_perc = "Sediment cover",
+                          Denitrification_amended_mgNm2hr_mean = "Denitrification",
+                          LandCover_Crop_perc = "Agricultural land",
+                          SRP_ugL = "SRP",
+                          CanopyCover_Avg_perc = "Canopy cover",
+                          DO_mgL_mean = "O₂",
+                          SedimentCover_perc = "Sediment cover",
+                          ReachWidth_Avg_m = "Stream width",
+                          DIN_SRP = "DIN:SRP",
+                          DOC_mgL = "DOC",
+                          CWDCover_perc = "Woody cover",
+                          WaterTemp_C_mean = "Temperature",
+                          NH4_ugL = "NH₄",
+                          TDN_mgL = "TDN",
+                          WatershedArea_km2 = "Watershed area",
+                          TDN_TP = "TDN:TP"),
+         feature = factor(feature, levels = feature)) %>%
+  dplyr::arrange(desc(importance))
+
+a <-
+  ggplot(data = modelResults, aes(y = feature, x = importance)) +
+  geom_point(size = 4, shape = 16, color = "#DC267F") +
+  geom_linerange(aes(xmin = importance.05, xmax = importance.95), 
+                 color = "#DC267F") +
+  labs(x = expression("Importance ("*Delta*"MSE)"), tag = "a") +
+  scale_y_discrete(limits = rev) +
+  theme(legend.position = "none") +
+  theme_minimal() +
+  coord_cartesian(xlim = c(-1, 6)) +
+  theme(axis.title.y = element_blank(),
+        legend.title = element_blank(),
+        legend.position = c(0.85, 0.06),
+        legend.key.size = unit(0.05, 'cm'),
+        panel.grid.minor = element_blank(),
+        axis.line =  element_line(color = "grey80", linewidth = 0.25),
+        panel.grid.major = element_line(linewidth = 0.25))
+
+# Get partial dependence plots for important predictors
+library(pdp)
+
+uncenterscale <- function(transformed_data, orig_mean, orig_sd){
+    transformed_data * orig_sd + orig_mean}
+
+load("data/predictiveModeling/RWorkspace_RespirationModeling_CAREER_2026-04-10.RData")
+
+PDPplot <- function(varname, orig_data){
+  # Compute
+  partialout <-
+    partial(mod_bestfit, pred.var = varname, 
+            type = "regression")
+  names(partialout) <- c("xvar", "yhat")
+  
+  # Get the reverse-transformed data variable
+  meval <- mean(getElement(orig_data, varname), na.rm = TRUE) 
+  sdval <- sd(getElement(orig_data, varname), na.rm = TRUE)
+  
+  partialout <-
+    partialout %>%
+    mutate(xvar_trans = uncenterscale(xvar, orig_mean = meval, orig_sd = sdval)) 
+  
+  plotout <-
+    ggplot(data = partialout, aes(x = xvar_trans, y = yhat)) +
+    geom_hline(yintercept = 0, color = "grey", linewidth = 0.1) +
+    geom_rug(alpha = 0.5, sides = "l") +
+    geom_line() +
+    scale_y_continuous(limits = c(6,8.5), breaks = c(6, 7, 8)) +
+    #stat_summary(fun.y = mean, geom = "line", color = "#519DAA",linetype = 2) +
+    labs(x = varname) +
+    theme_minimal() +
+    theme(panel.grid.major = element_line(linewidth = 0.25),
+          panel.grid.minor = element_blank(),
+          axis.line =  element_line(color = "grey80", linewidth = 0.25))
+  
+  return(plotout)
+}
+
+b <-
+  PDPplot("RockCover_perc", data_er) +
+  geom_rug(alpha = 0.5, sides = "l", color = "#DC267F") +
+    geom_line(color = "#DC267F") +
+  labs(tag = "b", x = expression("Rock cover (%)"),
+       y = expression("Rate (g-"*O[2]~m^{-2}~"d"^{-1}*")"))
+
+c <-
+  PDPplot("VegCover_perc", data_er) +
+  geom_rug(alpha = 0.5, sides = "l", color = "#DC267F") +
+    geom_line(color = "#DC267F") +
+  labs(tag = "c", x = expression("Macrophyte cover (%)"),
+       y = expression("Rate (g-"*O[2]~m^{-2}~"d"^{-1}*")"))
+
+d <- 
+  PDPplot("Discharge_m3s", data_er) +
+  geom_rug(alpha = 0.5, sides = "l", color = "#DC267F") +
+    geom_line(color = "#DC267F") +
+  labs(tag = "d", x = expression("Discharge ("*m^3 ~ s^{-1}*")"),
+       y = expression("Rate (g-"*O[2]~m^{-2}~"d"^{-1}*")"))
+
+grob <- grid.arrange(a, b, c, d, 
+             layout_matrix = rbind(c(1,1,1,2,2),
+                                   c(1,1,1,3,3),
+                                   c(1,1,1,4,4)))
+
+ggsave(grob, filename = "outputs/figure_predmod_ER.png", width = 5, 
+       height = 6, units = "in", dpi = 600)
+```
+
+
+
+# Plot of denitrification impacted by ER and ecoregion to address hyp 3?
+
+```{r rates & substrate heterogenity}
+ggplot(data = CAREERmatrix, 
+       aes(x = simpsonsInfo, y = Denitrification_amended_mgNm2hr_mean)) +
+  # Add regression line eqn and R2
+  ggpubr::stat_regline_equation(label.x = 1, label.y = 15, size = 3) +
+  ggpubr::stat_cor(label.x = 1, label.y = 14, size = 3) +
+  geom_smooth(method = "lm", color = "black", fullrange = T, se = F) +
+  stat_smooth(method = "lm", color = "black", geom = "ribbon", fill = NA, 
+              fullrange = T, linetype = 2) +
+  geom_point(fill = ibm4[1], color = "black", size = 5, shape = 21) +
+   # Labels
+  geom_label_repel(aes(label = ifelse(Denitrification_amended_mgNm2hr_mean >= cutD, 
+                                      SiteName, "")),
+                   #nudge_x = 1, nudge_y = 1, 
+                   size = 3,
+                   min.segment.length = unit(0, 'lines')) +
+  # Axis labels and scales
+  xlab(expression("Simpson's information index")) +
+  ylab(expression("Denitrification rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  labs(tag = "a") +
+  theme_classic() +
+  theme(axis.text = element_text(color = "black", size = 12),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        strip.text = element_text(size = 14),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+
+ggplot(data = CAREERmatrix, 
+       aes(x = simpsonsInfo, y = ER_mean)) +
+  ggpubr::stat_regline_equation(label.y = 8, size = 5) +
+  ggpubr::stat_cor(label.y = 7, size = 5) +
+  geom_point(fill = ibm4[1], color = "black", size = 5, shape = 21) +
+  # Axis labels and scales
+  xlab(expression("Simpson's information index")) +
+  ylab(expression("Ecosystem respiration rate (g-"*O[2]~m^{-2}~"hr"^{-1}*")")) +
+  labs(tag = "a") +
+  theme_classic() +
+  theme(axis.text = element_text(color = "black", size = 12),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        strip.text = element_text(size = 14),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+
+ggplot(data = CAREERmatrix, aes(x = shannonsEvenness, 
+                                y = Denitrification_amended_mgNm2hr_mean, fill = Study)) +
+  ggpubr::stat_regline_equation(label.y = 8, size = 5) +
+  ggpubr::stat_cor(label.y = 7.3, size = 5) +
+  geom_smooth(method = "lm", color = "black", fullrange = T, se = F) +
+  stat_smooth(method = "lm", color = "black", geom = "ribbon", fill = NA, 
+              fullrange = T, linetype = 2) +
+  geom_point(color = "black", size = 5, shape = 21) +
+  # Axis labels and scales
+  xlab(expression("Shannon's evenness")) +
+  ylab(expression("Denitrification rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  coord_cartesian(ylim = c(0, 16)) +
+  labs(tag = "a") +
+  theme_classic() +
+  theme(axis.text = element_text(color = "black", size = 12),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        strip.text = element_text(size = 14),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+
+ggplot(data = CAREERmatrix, aes(x = shannonsEvenness, 
+                                y = abs(ER_mean), fill = Study)) +
+  ggpubr::stat_regline_equation(label.y = 8, size = 5) +
+  ggpubr::stat_cor(label.y = 7.3, size = 5) +
+  geom_point(color = "black", size = 5, shape = 21) +
+  # Axis labels and scales
+  xlab(expression("Shannon's evenness")) +
+  ylab(expression("Ecosystem respiration rate (g-"*O[2]~m^{-2}~"hr"^{-1}*")")) +
+  labs(tag = "a") +
+  theme_classic() +
+  theme(axis.text = element_text(color = "black", size = 12),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        strip.text = element_text(size = 14),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+```
+
+```{r Fig_S1 scatterplot comparisons}
+### Keep for CAREER paper, leave out of your dissertation ###
+### Scatterplots with lit review data ##########################################
+## Compile data to run linear models
+# Denitrification metadataset
+denitMeta <- 
+  CAREERmatrix %>%
+  select(SiteName, ER_mean, DenitAmended_Mean_mgNm2hr, DOC_mgL, NO2NO3_ugL) %>%
+  mutate(ER_mean = abs(ER_mean)) %>%
+  rename(ER_Mean_gO2m2d = ER_mean, Denit_Mean_mgNm2hr=DenitAmended_Mean_mgNm2hr,
+         NO3_Mean_ugNL = NO2NO3_ugL) %>%
+  full_join(., LINXII %>% select(SiteName, ER_Mean_gO2m2d, Denit_Mean_mgNm2hr, 
+                                 DOC_Mean_mgL,NO3_Mean_ugNL))
+
+# Linear trend
+model <- lm(log(Denit_Mean_mgNm2hr)~log(ER_Mean_gO2m2d), 
+            subset(denitMeta, Denit_Mean_mgNm2hr > 0))
+#summary(model) #log-log relationship, log(y) = a + b log(x)
+model <- lm(log(Denit_Mean_mgNm2hr+1)~log(ER_Mean_gO2m2d+1), denitMeta)
+#summary(model) #log-log relationship, log(y) = a + b log(x)
+#formula(model)
+#coefficients(model)
+
+# Nitrate vs denitrification
+#a <- 
+  ggplot(data = NULL) +
+  # Trendline
+  geom_smooth(data = denitMeta, aes(x = NO3_Mean_ugNL, y = Denit_Mean_mgNm2hr), 
+              method = "lm", color = "black") +
+  # Career sites
+  geom_point(data = CAREERmatrix, 
+             aes(x = NO2NO3_ugL, y = DenitAmended_Mean_mgNm2hr, 
+                          fill = "Nationwide survey"), size = 3, 
+             shape = 21, alpha = 0.7) +
+  # LINXII
+  geom_point(data = LINXII, aes(x = NO3_Mean_ugNL, y = Denit_Mean_mgNm2hr, 
+                          fill = "Mulholland et al. 2009"), size = 3, 
+             shape = 21, alpha = 0.7) +
+  # Marcarelli 2008
+  geom_point(data = subset(Marcarelli, RateType == "Denitrification"), 
+             aes(x = Nitrate_ugNL, y = rate_ugNm2hr/1000, 
+                          fill = "Marcarelli et al. 2008"), size = 3, 
+             shape = 21, alpha = 0.7) +
+  # Add trendline equation
+  ggpubr::stat_cor(data = denitMeta, aes(x = NO3_Mean_ugNL, y = Denit_Mean_mgNm2hr),
+                   label.x.npc = 0, label.y.npc = 0.98) +
+  ggpubr::stat_regline_equation(data = denitMeta, aes(x = NO3_Mean_ugNL, y = Denit_Mean_mgNm2hr),
+                                label.x.npc = 0, label.y.npc = 0.92) +
+  # Axis labels and scales
+  scale_x_log10() +
+  scale_y_log10(breaks=c(0.001,0.1, 10, 1000)) +
+  coord_cartesian(ylim = c(1E-5, 1000)) +
+  xlab(expression("Nitrate ("*mu*"g-N L"^{-1}*")")) +
+  ylab(expression("Denitrification rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  scale_fill_manual(values = c("Nationwide survey" = ibm4[1], 
+                               "Mulholland et al. 2009" = ibm4[2], 
+                               "Marcarelli et al. 2008" = ibm4[3])) +
+  theme_classic() +
+  labs(tag = "a", fill = "Study") +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        #legend.position = c(0.2,0.2),
+        legend.background = element_rect(color = "black"),
+        legend.key.size = unit(0.15, 'in')) 
+
+# ER vs Denit
+ggplot(data = NULL) +
+  # Trendline
+  geom_smooth(data = denitMeta, aes(x = ER_Mean_gO2m2d, y = Denit_Mean_mgNm2hr), 
+              method = "lm", color = "black") +
+  # Career sites
+  geom_point(data = CAREERmatrix, 
+             aes(x = abs(ER_mean), y = DenitAmended_Mean_mgNm2hr, 
+                          fill = "Nationwide survey"), size = 3, 
+             shape = 21, alpha = 0.7) +
+  # LINXII
+  geom_point(data = LINXII, aes(x = ER_Mean_gO2m2d, y = Denit_Mean_mgNm2hr, 
+                          fill = "Mulholland et al. 2009"), size = 3, 
+             shape = 21, alpha = 0.7) +
+  # Add trendline equation
+  ggpubr::stat_cor(data = denitMeta, aes(x = ER_Mean_gO2m2d, y = Denit_Mean_mgNm2hr),
+                   label.x.npc = 0, label.y.npc = 0.98) +
+  ggpubr::stat_regline_equation(data = denitMeta, aes(x = ER_Mean_gO2m2d, y = Denit_Mean_mgNm2hr),
+                                label.x.npc = 0, label.y.npc = 0.92) +
+  # Axis labels and scales
+  scale_x_log10() +
+  scale_y_log10(breaks=c(0.001,0.1, 10, 1000), labels = c("0.001","0.1", "10", "1,000")) +
+  coord_cartesian(ylim = c(1E-5, 1000)) +
+  xlab(expression("Ecosystem respiration (mg-O2"~m^{-2}~"hr"^{-1}*")")) +
+  ylab(expression("Denitrification rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  scale_fill_manual(values = c("Nationwide survey" = ibm4[1], 
+                               "Mulholland et al. 2009" = ibm4[2], 
+                               "Marcarelli et al. 2008" = ibm4[3])) +
+  theme_classic() +
+  labs(fill = "Study", tag= "b") +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = c(0.25,0.15),
+        legend.background = element_rect(color = "black"),
+        legend.key.size = unit(0.15, 'in')) 
+ggsave(a, filename = "plots/ESCPoster/ER_Denit_Scatter.png", height = 5, 
+       width = 5, units = "in", dpi = 300)
+
+```
+
+```{r Regime comparison with rates}
+# Order er regimes chronologically
+plotMetab$ERCluster <- 
+  factor(plotMetab$ERCluster, levels = c("Aseasonal/Stochastic", "Summer Peak",
+                                       "Summer-Fall Plateau", 
+                                       "Summer-Fall Valley", "Fall Peak"))
+greyCells <- 
+  data.frame(GPPCluster = c(rep("Summer-Fall Valley", 4),
+                            "Summer Peak", rep("Spring Peak", 2)),
+             ERCluster = c("Aseasonal/Stochastic", "Summer Peak",
+                           "Summer-Fall Plateau", "Fall Peak",
+                           "Summer-Fall Valley", "Summer-Fall Valley",
+                           "Fall Peak")) %>%
+  mutate(GPPCluster = factor(GPPCluster, levels = c("Spring Peak", "Summer Peak",
+                                                    "Summer-Fall Valley")),
+         ERCluster = factor(ERCluster, levels = c("Aseasonal/Stochastic", 
+                                                  "Summer Peak",
+                                                  "Summer-Fall Plateau", 
+                                       "Summer-Fall Valley", "Fall Peak")))
+comboNums <- data.frame(GPPCluster = c(rep(c("Spring Peak", "Summer Peak"), 3),
+                                       "Summer-Fall Valley",
+                                       "Summer Peak"),
+                        ERCluster = c(rep("Aseasonal/Stochastic", 2),
+                                      rep("Summer Peak", 2),
+                                      rep("Summer-Fall Plateau", 2),
+                                      "Summer-Fall Valley",
+                                      "Fall Peak"),
+                        number = paste0(1:8, "."), xpos = ymd("2001-01-30"),
+                        ypos = 20) %>%
+  mutate(GPPCluster = factor(GPPCluster, levels = c("Spring Peak", "Summer Peak",
+                                                    "Summer-Fall Valley")),
+         ERCluster = factor(ERCluster, levels = c("Aseasonal/Stochastic", 
+                                                  "Summer Peak",
+                                                  "Summer-Fall Plateau", 
+                                       "Summer-Fall Valley", "Fall Peak")))
+clusterList <- 
+  plotMetab %>%
+  select(SiteYear, ERCluster, GPPCluster) %>%
+  distinct %>%
+  mutate(xpos = ymd("2001-03-30"), ypos = 20)
+
+
+a <-
+  ggplot(data = plotMetab) +
+  facet_grid(rows = vars(ERCluster), cols = vars(GPPCluster), switch = "y") +
+  # Shade out NA cells
+  geom_rect(data = greyCells, aes(xmin = as.Date(-Inf), xmax = as.Date(Inf), 
+                ymin = -Inf, ymax = Inf), 
+    fill = 'lightgrey', alpha = 0.5) +
+  geom_hline(aes(yintercept = 0)) +
+  # Add annotation numbers
+  geom_text_repel(data = clusterList, aes(x = xpos, y = ypos, 
+                                           label = SiteYear), size = 3,
+                  box.padding = 0, min.segment.length = Inf,
+                  direction = "y") +
+  #geom_text(data = comboNums, aes(x = xpos, y = ypos, label = number)) +
+  # Add GPP GAMs
+  geom_line(aes(x = DOYDate, y = GPP_GAM, group = SiteYear), 
+            color = ibm5[1], linewidth = 1,
+            alpha = 0.9) +
+  # Add ER GAMs
+  geom_line(aes(x = DOYDate, y = ER_GAM, group = SiteYear), color = ibm5[3],
+            linewidth = 1, alpha = 0.9) +
+  # Theming
+  scale_x_date(breaks = "2 months", date_labels = "%b") +
+  coord_cartesian(ylim = c(-25,25)) +
+  ylab(expression("GPP or ER (g"~O[2]~m^2~"d"^{-1}*")")) +
+  xlab("Date") +
+  # Remove legend for site
+  guides(color = "none", linetype = guide_legend(nrow = 3, title = "Year")) +
+  labs(tag = "a") +
+  # Theme adjustments
+  theme_classic() +
+  theme(axis.text = element_text(color = "black", size = 8),
+        axis.title = element_text(size = 10),
+        strip.text = element_text(size = 10, color = "white", face = "bold"),
+        strip.background.x = element_rect(fill = paste0(ibm5[1])),
+        strip.background.y = element_rect(fill = paste0(ibm5[3])),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none")
+
+ggsave(filename = "plots/regimeGrid.png", height = 9, 
+       width = 7.5, units = "in", dpi = 600)
+
+
+ggplot(data = CAREERLINXIImatrix, aes(y = abs(GPP_Mean_gO2m2d), 
+                                      x = Denit_Mean_mgNm2hr)) +
+  # Add regression line eqn and R2
+  ggpubr::stat_regline_equation(label.x = 0.001, label.y = 18, size = 3) +
+  ggpubr::stat_cor(label.x = 0.001, label.y = 16, size = 3) +
+  geom_smooth(method = "lm", color = "black", fullrange = T, se = F) +
+  stat_smooth(method = "lm", color = "black", geom = "ribbon", fill = NA, 
+              fullrange = T, linetype = 2) +
+  
+  # Labels
+  geom_label_repel(aes(label =  SiteName),
+                   nudge_x = 1, nudge_y = 1, 
+                   size = 3,
+                   min.segment.length = unit(0, 'lines')) +
+  # Points
+  geom_point(aes(fill = Study), shape = 21, size = 2.5) +
+  # Axis labels
+  xlab(expression("Denitrification (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  ylab(expression("GPP (g-"*"O"[2]~m^{-2}~"d"^{-1}*")")) +
+  scale_fill_manual(values = c(ibm5[3], ibm5[1])) +
+  labs(tag = "c") +
+  theme_classic() +
+  theme(axis.text = element_text(color = "black", size = 8),
+        plot.tag = element_text(size = 8),
+        axis.title = element_text(size = 10),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none",
+        plot.margin=unit(rep(0.05,4), "in"))
+
+ggplot(data = CAREERLINXIImatrix, aes(y = abs(GPP_Mean_gO2m2d), 
+                                      x = abs(ER_Mean_gO2m2d))) +
+  # Add regression line eqn and R2
+  ggpubr::stat_regline_equation(label.x = 0.001, label.y = 18, size = 3) +
+  ggpubr::stat_cor(label.x = 0.001, label.y = 16, size = 3) +
+  geom_smooth(method = "lm", color = "black", fullrange = T, se = F) +
+  stat_smooth(method = "lm", color = "black", geom = "ribbon", fill = NA, 
+              fullrange = T, linetype = 2) +
+  
+  # Labels
+  geom_label_repel(aes(label =  SiteName),
+                   nudge_x = 1, nudge_y = 1, 
+                   size = 3,
+                   min.segment.length = unit(0, 'lines')) +
+  # Points
+  geom_point(aes(fill = Study), shape = 21, size = 2.5) +
+  # Axis labels
+  xlab(expression("ER (g-"*"O"[2]~m^{-2}~"d"^{-1}*")")) +
+  ylab(expression("GPP (g-"*"O"[2]~m^{-2}~"d"^{-1}*")")) +
+  scale_fill_manual(values = c(ibm5[3], ibm5[1])) +
+  theme_classic() +
+  theme(axis.text = element_text(color = "black", size = 8),
+        plot.tag = element_text(size = 8),
+        axis.title = element_text(size = 10),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none",
+        plot.margin=unit(rep(0.05,4), "in"))
+
+```
+
+```{r Fig S3 Individual metab plots}
+### Annual metabolism time series ##############################################
+suppMetab <-
+  CAREER_metabolism %>%
+  mutate(DOY = yday(date),
+         DOYDate = as.Date(DOY, origin = "2000-12-31"),
+         SiteYear = paste0(SiteName, ", ",year(date))) %>%
+  filter(DOY != 366 & DOY != 365 & DOY != 1) %>%
+# Create dummy max and min dates for plotting x limits
+  group_by(SiteYear) %>%
+  mutate(xmin = ymd(paste0(unique(year(date)), "-01-01")),
+         xmax = ymd(paste0(unique(year(date)), "-12-31")))
+
+# Grab site name, data, Arrange sites by longitude
+siteOrder <-
+  CAREER_sites %>% 
+  arrange(Longitude) %>%
+  # Preserve sites that we have metabolism estimates for
+  filter(SiteName %in% unique(CAREER_metabolism$SiteName)) %>%
+  # Create SiteYear column
+  mutate(SiteYear = paste(SiteName, year(date), sep = ", "),
+         SiteYear = factor(SiteYear, levels = unique(SiteYear))) %>%
+  filter(SiteYear != "Pilgrim River, 2019")
+
+# Plot
+ggplot(data = suppMetab) +
+  facet_wrap(vars(SiteYear), ncol = 2, scales = "free_x") +
+  # dummy blank layers to define min and max dates for x axis
+  geom_blank(aes(x = xmin)) + geom_blank(aes(x = xmax)) +
+  # y-axis
+  geom_hline(aes(yintercept = 0)) +
+  # Vertical line on N sampling date
+  geom_vline(data = siteOrder, aes(xintercept = date), linetype = 2) +
+  # GAM gpp
+  geom_ribbon(aes(x = date, ymin = GPP_GAM-GPP_GAMse, 
+                  ymax = GPP_GAM+GPP_GAMse), fill = ibm5[1], alpha = 0.5) +
+  geom_line(aes(x = date, y = GPP_GAM), color = ibm5[1], linewidth = 1.5) +
+  # GAM er
+  geom_ribbon(aes(x = date, ymin = ER_GAM-ER_GAMse, 
+                  ymax = ER_GAM+ER_GAMse), fill = ibm5[3], alpha = 0.5) +
+  geom_line(aes(x = date, y = ER_GAM), color = ibm5[3], linewidth = 1.5) +
+  # Add points
+  geom_point(aes(x = date, y = GPP_mean), color = ibm5[1], 
+             shape = 21, fill = "white") +
+  geom_point(aes(x = date, y = ER_mean), color = ibm5[3], 
+             shape = 21, fill = "white") +
+  scale_x_date(breaks = "1 month", date_labels = "%b") +
+  coord_cartesian(ylim = c(-25,25)) +
+  ylab(expression("GPP or ER (g"~O[2]~m^2~"d"^{-1}*")")) +
+  xlab("Date") +
+  # Remove legend for site
+  guides(color = "none", linetype = guide_legend(nrow = 3, title = "Year")) +
+  # Theme adjustments
+  theme_classic() +
+  theme(axis.text = element_text(color = "black", size = 8),
+        axis.title = element_text(size = 10),
+        strip.text = element_text(size = 10),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none")
+
+# Save plot
+ggsave(filename = "plots/supplemental/annualMetabolism.png", height = 25, 
+       width = 7.5, units = "in", dpi = 600)
+```
+
+```{r ratesBySite, fig.height=7, fig.width = 15, fig.fullwidth = T}
+CAREER_wholeReach_long <- 
+  CAREER_wholeReach %>%
+  select(SiteName, date, Longitude, DenitAmended_Mean_mgNm2hr:Nfix_SD_mgNm2hr) %>%
+  pivot_longer(names_to = c("process", "stat", "unit"), 
+               names_pattern = "(\\w+)_(\\w+)_(\\w+)",
+               cols = DenitAmended_Mean_mgNm2hr:Nfix_SD_mgNm2hr) %>%
+  pivot_wider(names_from = stat, values_from = value) %>%
+  mutate(MeanPlusSD = Mean + SD,
+         MeanMinusSD = Mean - SD)
+
+# Rename fixation and denitrification
+CAREER_wholeReach_long$process <- recode(CAREER_wholeReach_long$process, 
+                                         "Nfix" = "N Fixation",
+                                         "DenitAmended" = "Denitrification")
+#Factorize site name by latitude
+CAREER_wholeReach_long$SiteName <- reorder(CAREER_wholeReach_long$SiteName, 
+                                           CAREER_wholeReach_long$Longitude)
+
+mean(CAREER_wholeReach$DenitAmended_Mean_mgNm2hr, na.rm = T)
+mean(CAREER_wholeReach$Nfix_Mean_mgNm2hr, na.rm = T)
+
+a <- 
+  ggplot(data = subset(CAREER_wholeReach_long, process %in% c("Denitrification", 
+                                                              "N Fixation")),
+       aes(y = Mean, x = process, fill = process)) +
+  geom_jitter(color = "black", size = 2, width = 0.2, shape = 21, alpha = 0.7) +
+  # Add a point for the means
+  stat_summary(fun = mean, geom = "point", shape = 24, size = 4, fill = "white") +
+  # Axis labels and scales
+  xlab(expression("Process")) +
+  ylab(expression("Rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  labs(tag = "a") +
+  scale_fill_manual(values = c(ibm5[4], ibm5[1])) +
+  scale_y_continuous(labels = c("0","5","10","15"),  breaks = c(0, 5, 10, 15)) +
+  theme_classic() +
+  theme(axis.text = element_text(color = "black", size = 8),
+        axis.title = element_text(color = "black", size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+
+b <- 
+  ggplot(data = CAREER_wholeReach,
+       aes(x = Nfix_Mean_mgNm2hr, y = DenitAmended_Mean_mgNm2hr)) +
+  geom_point(size = 2, shape = 21) +
+  # Add 1:1 line
+  geom_abline(slope = 1, intercept = 0, linetype = 2) +
+  # Axis labels and scales
+  scale_x_log10(labels = c("0.00001","0.001","0.1", "10"), 
+                breaks = c(1E-5,0.001, 0.1, 10)) +
+  scale_y_log10(labels = c("0.1", "1","10"), 
+                breaks = c(0.1, 1, 10)) +
+  xlab(expression("N fixation rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  ylab(expression("Denitrification rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  labs(tag = "b") +
+  theme_classic() +
+  theme(axis.text = element_text(color = "black", size = 8),
+        axis.title = element_text(color = "black", size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+
+#### Plot whole-reach rates by site ###########################################
+# Factorize site name by 
+
+c <- 
+  ggplot(data = subset(CAREER_wholeReach_long, 
+                       process %in% c("Denitrification", "N Fixation")), 
+         aes(y = SiteName)) +
+  facet_wrap(~ process) +
+  # Line segment at each site name
+  geom_segment(aes(y= SiteName, yend = SiteName, x = 1E-7, xend = 100), 
+               color = "lightgrey") +
+  # Add error bars
+  geom_errorbar(aes(xmin = pmax(0, MeanMinusSD), xmax = MeanPlusSD),
+                width = 0.8, position = position_dodge2(width = 0.8),
+                size = 0.6) +
+  geom_point(aes(x = Mean, fill = process),
+             size = 2.5, shape = 21,
+             position = position_dodge2(width = 0.8)) +
+  # Axis labels and scales
+  ylab(expression("Site")) +
+  xlab(expression("Rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  scale_x_log10(labels = c("0.00001","0.001","0.1", "10"), 
+                breaks = c(1E-5,0.001, 0.1, 10)) +
+  scale_y_discrete(limits = rev) +
+  scale_fill_manual(values = c(ibm5[4], ibm5[1])) +
+  coord_cartesian(xlim = c(1E-6, 30)) +
+  labs(tag = "c") +
+  theme_classic() +
+  theme(axis.text = element_text(color = "black", size = 8),
+        axis.title.x = element_text(size = 8),
+        axis.title.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none")
+
+# Arrange plot
+grob <- grid.arrange(a, b, c, 
+                     layout_matrix = rbind(c(1,3,3,3),
+                                           c(2,3,3,3)))
+# Save
+ggsave(grob, filename = "plots/ReachRates_ByStream_horizontal.png",
+       width = 11, height = 6, units = "in", dpi = 300)
+```
+
+# Denitrification and fixation rates in our study compared to literature
+
+```{r literature, fig.cap="Comparison of reach-scaled denitrification rates (a) and nitrogen fixation rates (b) from this study with published rates from Mulholland et al. 2009 and Marcarelli et al. 2008.", fig.height=5, fig.width=10, fig.fullwidth = TRUE}
+# Load marcarelli data
+Marcarelli <- read_csv(file = "data/litReview/Marcarelli_2008litreviewrates.csv")
+
+options(scipen=10000)
+
+#### Compile data to run linear models #########################################
+# Denitrification metadataset
+denitMeta <- CAREER_wholeReach %>%
+  select(SiteName, NO2NO3_ugL, DenitAmended_Mean_mgNm2hr) %>%
+  rename(NO3_ugNL = NO2NO3_ugL, 
+         Denit_mgNm2hr = DenitAmended_Mean_mgNm2hr)
+denitMeta <- full_join(denitMeta, 
+                       LINXII %>% select(SiteName, NO3_ugNL, Denit_mgNm2hr))
+denitMeta <- 
+  subset(Marcarelli, RateType == "Denitrification") %>% 
+  select(Stream, Nitrate_ugNL, rate_ugNm2hr) %>%
+  mutate(Denit_mgNm2hr = rate_ugNm2hr/1000) %>%
+  rename(SiteName = Stream, NO3_ugNL = Nitrate_ugNL) %>%
+  select(SiteName, NO3_ugNL, Denit_mgNm2hr) %>%
+  full_join(., denitMeta)
+# Linear trend
+model <- lm(log(Denit_mgNm2hr)~log(NO3_ugNL), subset(denitMeta, Denit_mgNm2hr > 0))
+#summary(model) #log-log relationship, log(y) = a + b log(x)
+model <- lm(log(Denit_mgNm2hr+1)~log(NO3_ugNL+1), denitMeta)
+#summary(model) #log-log relationship, log(y) = a + b log(x)
+#formula(model)
+#coefficients(model)
+
+# N fixation metadataset
+nfixMeta <- 
+  CAREER_wholeReach %>%
+  select(SiteName, NO2NO3_ugL, Nfix_Mean_mgNm2hr) %>%
+  rename(NO3_ugNL = NO2NO3_ugL, 
+         Nfix_mgNm2hr = Nfix_Mean_mgNm2hr)
+nfixMeta <- subset(Marcarelli, RateType == "N fixation") %>% 
+  select(Stream, Nitrate_ugNL, rate_ugNm2hr) %>%
+  mutate(Nfix_mgNm2hr = rate_ugNm2hr/1000) %>%
+  rename(SiteName = Stream, NO3_ugNL = Nitrate_ugNL) %>%
+  select(SiteName, NO3_ugNL, Nfix_mgNm2hr) %>%
+  full_join(., nfixMeta)
+
+# Linear trend
+model <- lm(log(Nfix_mgNm2hr+1)~log(NO3_ugNL+1), nfixMeta)
+summary(model)
+
+# Plot
+a <- 
+  ggplot(data = NULL) +
+  # Trendline
+  geom_smooth(data = denitMeta, aes(x = NO3_ugNL, y = Denit_mgNm2hr), 
+              method = "lm", color = "black") +
+  # Career sites
+  geom_point(data = CAREER_wholeReach, 
+             aes(x = NO2NO3_ugL, y = DenitAmended_Mean_mgNm2hr, 
+                          fill = "This study"), size = 3, 
+             shape = 21, alpha = 0.7) +
+  # LINXII
+  geom_point(data = LINXII, aes(x = NO3_ugNL, y = Denit_mgNm2hr, 
+                          fill = "Mulholland et al. 2009"), size = 3, 
+             shape = 21, alpha = 0.7) +
+  # Marcarelli 2008
+  geom_point(data = subset(Marcarelli, RateType == "Denitrification"), 
+             aes(x = Nitrate_ugNL, y = rate_ugNm2hr/1000, 
+                          fill = "Marcarelli et al. 2008"), size = 3, 
+             shape = 21, alpha = 0.7) +
+  # Add trendline equation
+  ggpubr::stat_cor(data = denitMeta, aes(x = NO3_ugNL, y = Denit_mgNm2hr),
+                   label.x.npc = 0, label.y.npc = 0.98) +
+  ggpubr::stat_regline_equation(data = denitMeta, aes(x = NO3_ugNL, y = Denit_mgNm2hr),
+                                label.x.npc = 0, label.y.npc = 0.92) +
+  # Axis labels and scales
+  scale_x_log10() +
+  scale_y_log10(breaks=c(0.001,0.1, 10, 1000)) +
+  coord_cartesian(ylim = c(1E-5, 1000)) +
+  xlab(expression("Nitrate ("*mu*"g-N L"^{-1}*")")) +
+  ylab(expression("Denitrification rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  scale_fill_manual(values = c("This study" = ibm4[1], "Mulholland et al. 2009" = ibm4[2], 
+                               "Marcarelli et al. 2008" = ibm4[3])) +
+  theme_classic() +
+  labs(tag = "a", fill = "Study") +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = c(0.25,0.15),
+        legend.background = element_rect(color = "black"),
+        legend.key.size = unit(0.15, 'in')) 
+
+
+# N fixation
+b <- 
+  ggplot(data = NULL) +
+  # Marcarelli review
+  geom_point(data = subset(Marcarelli, RateType == "N fixation"), 
+             aes(x = Nitrate_ugNL, y = rate_ugNm2hr/1000, 
+                          fill = "Marcarelli et al. 2008"), size = 3, 
+             shape = 21, alpha = 0.7) +
+  # Career sites
+  geom_point(data = CAREER_wholeReach, 
+             aes(x = NO2NO3_ugL, y = Nfix_Mean_mgNm2hr, 
+                          fill = "This study"), size = 3, 
+             shape = 21, alpha = 0.7) +
+  # Axis labels and scales
+  xlab(expression("Nitrate ("*mu*"g-N L"^{-1}*")")) +
+  ylab(expression("Nitrogen fixation rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  scale_fill_manual(values = c("This study" = ibm4[1], 
+                               "Mulholland et al. 2009" = ibm4[2], 
+                               "Marcarelli et al. 2008" = ibm4[3])) +
+  # Log scale
+  scale_x_log10() +
+  scale_y_log10() +
+  coord_cartesian(ylim = c(1E-6, 1000)) +
+  # Theme adjustments
+  theme_classic() +
+  labs(tag = "b", fill = "Study") +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = c(0.75, 0.85),
+        legend.background = element_rect(color = "black"),
+        legend.key.size = unit(0.15, 'in')) 
+
+grob3 <- grid.arrange(a, b, nrow = 1)
+ggsave(grob3, filename = "plots/NO3_DenitNfix_Scatter.png", height = 5, 
+       width = 10, units = "in", dpi = 300)
+```
+
+## Without CAREER points (for slideshows)
+
+```{r LitReviewNvsRates_sansCAREER, fig.cap="Reach-scaled denitrification rates (a) and nitrogen fixation rates (b) from Mulholland et al. 2009 and Marcarelli et al. 2008.", fig.height=5, fig.width=10, fig.fullwidth = TRUE}
+# Same scatterplot without CAREER data, for a talk Amy is giving
+# Denitrification metadataset
+a2 <- 
+  ggplot(data = NULL) +
+  # LINXII
+  geom_point(data = LINXII, aes(x = NO3_ugNL, y = Denit_mgNm2hr, 
+                          fill = "Mulholland et al. 2009"), size = 3, 
+             shape = 21, alpha = 0.7) +
+  # Marcarelli 2008
+  geom_point(data = subset(Marcarelli, RateType == "Denitrification"), 
+             aes(x = Nitrate_ugNL, y = rate_ugNm2hr/1000, 
+                          fill = "Marcarelli et al. 2008"), size = 3, 
+             shape = 21, alpha = 0.7) +
+  # Add trendline equation
+  #ggpubr::stat_cor(data = denitMeta, aes(x = NO3_ugNL, y = Denit_mgNm2hr),
+  #                 label.x.npc = 0, label.y.npc = 0.9) +
+  #ggpubr::stat_regline_equation(data = denitMeta, aes(x = NO3_ugNL, y = Denit_mgNm2hr),
+  #                              label.x.npc = 0, label.y.npc = 0.85) +
+  # Axis labels and scales
+  scale_x_log10() +
+  scale_y_log10(breaks=c(0.001,0.1, 10, 1000)) +
+  coord_cartesian(ylim = c(1E-5, 1000)) +
+  xlab(expression("Nitrate ("*mu*"g-N L"^{-1}*")")) +
+  ylab(expression("Denitrification rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  scale_fill_manual(values = c("Mulholland et al. 2009" = ibm4[2], 
+                               "Marcarelli et al. 2008" = ibm4[3])) +
+  theme_classic() +
+  labs(tag = "a", fill = "Study") +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none",
+        legend.background = element_rect(color = "black"),
+        legend.key.size = unit(0.15, 'in')) 
+
+b2 <- 
+  ggplot(data = NULL) +
+  # Marcarelli review
+  geom_point(data = subset(Marcarelli, RateType == "N fixation"), 
+             aes(x = Nitrate_ugNL, y = rate_ugNm2hr/1000, 
+                          fill = "Marcarelli et al. 2008"), size = 3, 
+             shape = 21, alpha = 0.7) +
+  # Add trendline equation
+  #ggpubr::stat_cor(data = nfixMeta, aes(x = NO3_ugNL, y = Nfix_mgNm2hr),
+  #                 label.x.npc = 0, label.y.npc = 1) +
+  #ggpubr::stat_regline_equation(data = nfixMeta, aes(x = NO3_ugNL, y = Nfix_mgNm2hr),
+  #                              label.x.npc = 0, label.y.npc = 0.85) +
+  # Axis labels and scales
+  xlab(expression("Nitrate ("*mu*"g-N L"^{-1}*")")) +
+  ylab(expression("Nitrogen fixation rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  scale_fill_manual(values = c("Mulholland et al. 2009" = ibm4[2], 
+                               "Marcarelli et al. 2008" = ibm4[3])) +
+  # Log scale
+  scale_x_log10() +
+  scale_y_log10() +
+  coord_cartesian(ylim = c(1E-6, 1000), xlim = c(NA, 3000)) +
+  # Theme adjustments
+  theme_classic() +
+  labs(tag = "b", fill = "Study") +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = c(0.75, 0.85),
+        legend.background = element_rect(color = "black"),
+        legend.key.size = unit(0.15, 'in')) 
+
+grob4 <- grid.arrange(a2, b2, nrow = 1)
+ggsave(grob4, filename = "plots/NO3_DenitNfix_Scatter_sansCAREER.png", height = 5, 
+       width = 10, units = "in", dpi = 300)
+```
+
+# Substrate plots
+
+```{r boxplotAmDenit, fig.cap="Amended denitrification rates (n = 71) and nitrogen fixation rates (n = X) measured on multiple substrates and scaled to the stream reach based on percent abundance of substrate type in the reach. Vegetation = sum of algae and macrophyte cover. CWD = coarse woody debris. Boxplot error bars extend from the first quartile minus 1.5 times the interquartile range to the third quartile plus 1.5 times the interquartile range, middle bar denotes median.", fig.height=4, fig.width = 9, fig.fullwidth = T}
+# Adjust formatting of substrate names
+CAREER_scaledChamber$Substrate <- recode_factor(CAREER_scaledChamber$Substrate, 
+                                                "bedrock" = "Bedrock", "CWD" = "Wood",
+                                                "rock" = "Rock", "sediment" = "Sediment", 
+                                                "leaf litter" = "Leaf litter",
+                                                "vegetation" = "Vegetation")
+
+# Boxplot of amended denitrification, by substrate
+b <- 
+  ggplot(data = subset(CAREER_scaledChamber, 
+                       !is.na(DenitAmended_Mean_mgNm2hr_reachScaled)),
+       aes(y = DenitAmended_Mean_mgNm2hr_reachScaled, x = Substrate)) +
+  stat_boxplot(geom = "errorbar", width = 0.2) +
+  geom_boxplot(aes(fill = factor(Substrate)), outlier.shape = NA, width = 0.7) +
+  geom_jitter(color = "black", size = 2, width = 0.2, shape = 21, fill = "white",
+              alpha = 0.7) +
+  # Axis labels and scales
+  xlab(expression("Substrate type")) +
+  ylab(expression("Denitrification patch rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  labs(tag = "b") +
+  scale_fill_manual(values = ibm4) +
+  scale_x_discrete(limits = c("Sediment", "Vegetation", "Rock", "Wood")) +
+  theme_classic() +
+  theme(axis.text = element_text(color = "black", size = 8),
+        axis.title = element_text(color = "black", size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+
+# Boxplot of N fixation, by substrate
+c <- 
+  ggplot(data = subset(CAREER_scaledChamber, !is.na(Nfix_Mean_mgNm2hr)),
+       aes(y = Nfix_Mean_mgNm2hr_ReachScaled, x = Substrate)) +
+  stat_boxplot(geom = "errorbar", width = 0.2) +
+  geom_boxplot(aes(fill = factor(Substrate)), outlier.shape = NA, width = 0.7) +
+  geom_jitter(color = "black", size = 2, width = 0.2, shape = 21, fill = "white",
+              alpha = 0.7) +
+  # Axis labels and scales
+  xlab(expression("Substrate type")) +
+  ylab(expression("Nitrogen fixation patch rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  labs(tag = "c") +
+  scale_fill_manual(values = ibm4) +
+  scale_x_discrete(limits = c("Vegetation", "Sediment", "Rock", "Wood")) +
+  theme_classic() +
+  theme(axis.text = element_text(color = "black", size = 8),
+        axis.title = element_text(color = "black", size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+
+# Plot together
+plot <- grid.arrange(a, b, c, nrow = 1) # amended
+ggsave(plot, filename = "plots/ReachRates_BySubstrate.png", dpi = 300, width = 9, 
+       height = 3, units = "in")
+```
+
+```{r boxplotAmendDIN, eval = FALSE, fig.cap="Amended denitrification rates (n = 71) and nitrogen fixation rates (n = X) measured on multiple substrates (macrophyte, rock, sediment, wood) present at each study site as part of the Marcarelli Nationwide Survey. Boxplot error bars extend from the first quartile minus 1.5 times the interquartile range to the third quartile plus 1.5 times the interquartile range, middle bar denotes median.", fig.height=8, fig.width = 6}
+set.seed(11)
+# Boxplots with colored points for [DIN]
+# Boxplot of amended denitrification, by substrate
+d <- 
+  ggplot(data = subset(CAREER, !is.na(DenitAmended_Mean_mgNm2hr)),
+       aes(y = DenitAmended_Mean_mgNm2hr, x = Substrate, fill = DIN_ugNL)) +
+  stat_boxplot(geom = "errorbar", width = 0.2) +
+  geom_boxplot(outlier.shape = NA, width = 0.7) +
+  geom_jitter(color = "black", size = 2.5, width = 0.3, shape = 21, alpha = 0.9) +
+  # Axis labels and scales
+  xlab(expression("Substrate type")) +
+  ylab(expression("Amended Denitrification rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  labs(tag = "b", fill = expression("DIN ("*mu * g*"-N L"^{-1}*")")) +
+  paletteer::scale_fill_paletteer_c("viridis::inferno") +
+  scale_x_discrete(limits = c("Macrophyte", "Sediment", "Wood", "Rock")) +
+  theme_classic() +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = c(0.23, 0.91),
+        legend.background = element_rect(colour = "black"),
+        legend.key.size = unit(0.15, 'in'))
+set.seed(11)
+# N Fix
+f <- 
+  ggplot(data = subset(CAREER, !is.na(Nfix_Mean_mgNm2hr)),
+       aes(y = Nfix_Mean_mgNm2hr, x = Substrate, fill = DIN_ugNL)) +
+  stat_boxplot(geom = "errorbar", width = 0.2) +
+  geom_boxplot(outlier.shape = NA, width = 0.7) +
+  geom_jitter(color = "black", size = 2.5, width = 0.3, shape = 21, alpha = 0.9) +
+  # Axis labels and scales
+  xlab(expression("Substrate type")) +
+  ylab(expression("Nitrogen fixation rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  labs(tag = "c", fill = expression("DIN ("*mu * g*"-N L"^{-1}*")")) +
+  paletteer::scale_fill_paletteer_c("viridis::inferno") +
+  scale_x_discrete(limits = c("Macrophyte", "Sediment", "Wood", "Rock")) +
+  theme_classic() +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none",
+        legend.background = element_rect(colour = "black")) 
+
+# Plot together
+grob1 <- grid.arrange(d, f, nrow = 1) # amended
+ggsave(grob1, filename = "plots/DenitNFix_Substrates.png", height = 8, 
+       width = 7, units = "in", dpi = 300)
+
+# both
+#longways the data
+rates_long <- CAREER %>%
+  select(SiteName, date, DenitAmended_Mean_mgNm2hr, Nfix_Mean_mgNm2hr) %>%
+  pivot_longer(cols = 3:4, names_to = "process")
+
+o <- 
+  ggplot(data = rates_long) +
+  geom_jitter(aes(y = value, x = process, fill = process), shape = 21, 
+              size =2.5, width = 0.2, alpha = 0.9) +
+  # Axis labels and scales
+  xlab(expression("Process")) +
+  ylab(expression("Denitrification or Nitrogen fixation rate (mg-N"~m^{-2}~"hr"^{-1}*")")) +
+  labs(tag = "a") +
+  scale_fill_manual(values = ibm2) +
+  scale_x_discrete(labels = c(DenitAmended_Mean_mgNm2hr = "Amended\ndenitrification", 
+                              Nfix_Mean_mgNm2hr = "Nitrogen\nfixation")) +
+  theme_classic() +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none",
+        legend.background = element_rect(colour = "black")) 
+
+d2 <- d + theme(legend.position = c(0.2, 0.91))
+
+grob2 <- grid.arrange(o, d2, f, nrow = 1, layout_matrix = rbind(c(1,2,2,3,3)))
+ggsave(grob2, filename = "plots/DenitNFix_Substrates_2.png", height = 8, 
+       width = 10, units = "in", dpi = 300)
+```
+
+# Comparisons between CAREER and LINX II datasets
+
+```{r DIN2, eval = FALSE, fig.cap="Distribution of DIN concentrations in CAREER and LINX II study. Omitted one datapoint from LINXII where DIN = 21165 ugL because it squished the axis. need to fix", fig.height=6, fig.width=3}
+f <- ggplot(data, aes(y = DIN_ugNL, x = Project, fill = Project)) +
+  # Career sites
+  geom_point(color = "black", size = 3, shape = 21, alpha = 0.7) +
+  # Axis labels and scales
+  xlab(expression("Study")) +
+  ylab(expression("DIN ug-N / L")) +
+  scale_fill_manual(values = ibm4) +
+  theme_classic() +
+  coord_cartesian(ylim = c(0, 5000)) +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+f
+```
+
+```{r DIN3, eval = F, fig.cap="Distribution of DIN concentrations in CAREER and LINX II study. Omitted one datapoint from LINXII where DIN = 21165 ugL because it squished the axis. need to fix", fig.height=6, fig.width=4}
+f2 <- f + labs(tag = "b")
+#these NP numbers aren't right, they should be TN / TP, currently DIN / TP
+g <- ggplot(data = CAREER_sites, 
+       aes(y = NP_molar_DINTDP, x = Project, fill = Project)) +
+  # Career sites
+  geom_point(color = "black", size = 3, shape = 21, alpha = 0.7) +
+  # Axis labels and scales
+  xlab(expression("Study")) +
+  ylab(expression("N:P (DIN / TP)")) +
+  scale_fill_manual(values = ibm4) +
+  theme_classic() +
+  labs(tag = "a") +
+  #coord_cartesian(ylim = c(0, 5000)) +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+grid.arrange(g, f2, nrow = 1, layout_matrix = rbind(c(1,2,2)))
+```
+
+```{r N1, eval = FALSE, fig.height=10, fig.width = 8.5}
+h <- ggplot(data = CAREER, aes(y = TDN_mgL, x = Organization, 
+                          fill = Organization)) +
+  # Labels
+  geom_label(aes(label = SiteName), hjust = 0, fill = "white", nudge_x = 0.1,
+             size = 3) +
+  # Career sites
+  geom_point(color = "black", size = 3, shape = 21, alpha = 0.7) +
+  # Axis labels and scales
+  xlab(expression("Study")) +
+  ylab(expression("TDN mg-N / L")) +
+  scale_fill_manual(values = ibm4) +
+  theme_classic() +
+  labs(tag = "a") +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+
+i <- ggplot(data = CAREER, aes(y = NH4_ugL, x = Organization, 
+                          fill = Organization)) +
+  # Labels
+  geom_label(aes(label = SiteName), hjust = 0, fill = "white", nudge_x = 0.1,
+             size = 3) +
+  # Career sites
+  geom_point(color = "black", size = 3, shape = 21, alpha = 0.7) +
+  # Axis labels and scales
+  xlab(expression("Study")) +
+  ylab(expression("NH4 ugN / L")) +
+  scale_fill_manual(values = ibm4) +
+  theme_classic() +
+  labs(tag = "b") +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+
+j <- ggplot(data = CAREER, aes(y = NO2NO3_ugL, x = Organization, 
+                          fill = Organization)) +
+  # Labels
+  geom_label(aes(label = SiteName), hjust = 0, fill = "white", nudge_x = 0.1,
+             size = 3) +
+  # Career sites
+  geom_point(color = "black", size = 3, shape = 21, alpha = 0.7) +
+  # Axis labels and scales
+  xlab(expression("Study")) +
+  ylab(expression("NO2 + NO3 ugN / L")) +
+  scale_fill_manual(values = ibm4) +
+  theme_classic() +
+  labs(tag = "c") +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+
+k <- ggplot(data = CAREER, aes(y = SRP_ugL, x = Organization, 
+                          fill = Organization)) +
+  # Labels
+  geom_label(aes(label = SiteName), hjust = 0, fill = "white", nudge_x = 0.1,
+             size = 3) +
+  # Career sites
+  geom_point(color = "black", size = 3, shape = 21, alpha = 0.7) +
+  # Axis labels and scales
+  xlab(expression("Study")) +
+  ylab(expression("SRP ug / L")) +
+  scale_fill_manual(values = ibm4) +
+  theme_classic() +
+  labs(tag = "d") +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+
+l <- ggplot(data = CAREER, aes(y = TDP_ugL, x = Organization, 
+                          fill = Organization)) +
+  # Labels
+  geom_label(aes(label = SiteName), hjust = 0, fill = "white", nudge_x = 0.1,
+             size = 3) +
+  # Career sites
+  geom_point(color = "black", size = 3, shape = 21, alpha = 0.7) +
+  # Axis labels and scales
+  xlab(expression("Study")) +
+  ylab(expression("TDP ug / L")) +
+  scale_fill_manual(values = ibm4) +
+  theme_classic() +
+  labs(tag = "e") +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+
+m <- ggplot(data = CAREER, aes(y = TP_ugL, x = Organization, 
+                          fill = Organization)) +
+  # Labels
+  geom_label(aes(label = SiteName), hjust = 0, fill = "white", nudge_x = 0.1,
+             size = 3) +
+  # Career sites
+  geom_point(color = "black", size = 3, shape = 21, alpha = 0.7) +
+  # Axis labels and scales
+  xlab(expression("Study")) +
+  ylab(expression("TP ug / L")) +
+  scale_fill_manual(values = ibm4) +
+  theme_classic() +
+  labs(tag = "f") +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+
+grid.arrange(h, i, j, k, l, m, nrow = 3)
+```
+
+```{r N2, eval = FALSE, fig.height=6, fig.width = 8.5}
+CAREER_sites$TP_mgL <- CAREER_sites$TP_ugL / 1000
+CAREER_sites$NP_TDN.TP <- CAREER_sites$TDN_mgL / CAREER_sites$TP_mgL
+
+ggplot(data = CAREER_sites, aes(y = NP_TDN.TP, x = Organization, 
+                          fill = Organization)) +
+  # Labels
+  geom_label(aes(label = SiteName), hjust = 0, fill = "white", nudge_x = 0.1,
+             size = 3) +
+  # Career sites
+  geom_point(color = "black", size = 3, shape = 21, alpha = 0.7) +
+  # Axis labels and scales
+  xlab(expression("Study")) +
+  ylab(expression("N:P (as TDN/TP)")) +
+  scale_fill_manual(values = ibm4) +
+  theme_classic() +
+  theme(axis.text = element_text(color = "black"), 
+        axis.text.y = element_text(size = 8),
+        panel.background = element_rect(color = "black"), 
+        legend.position = "none") 
+```
+
+```{r table, eval = FALSE}
+# Order NP from low to high
+sortNP <- order(CAREER_sites$NP_molar_DINTDP)
+
+tabledata <- data.frame(SiteName = CAREER_sites$SiteName[sortNP],
+                        SampleDate = CAREER_sites$date[sortNP],
+                        State = CAREER_sites$State[sortNP],
+                        Organization = CAREER_sites$Organization[sortNP],
+                        NPmolar_asDIN.TDP = CAREER_sites$NP_molar_DINTDP[sortNP],
+                        DIN_ugL = CAREER_sites$DIN_ugNL[sortNP],
+                        NH4_ugL = CAREER_sites$NH4_ugL[sortNP],
+                        NO2NO3_ugL = CAREER_sites$NO2NO3_ugL[sortNP],
+                        SRP_ugL = CAREER_sites$SRP_ugL[sortNP],
+                        TDP_ugL = CAREER_sites$TDP_ugL[sortNP])
+
+knitr::kable(tabledata, booktabs = T) %>% kable_styling(latex_options = c("striped", "scale_down"))
+```
+
+
+
+
+
+# Site maps
+
+## CAREER sites
+
+```{r map_allCAREERsites, fig.cap="Map of all CAREER study sites (n = 30).", fig.height=7, fig.width=7, fig.fullwidth = T}
+##### Plot CAREER Site Map #####
+# Pull state map data
+world.map <- map_data("world") 
+states.map <- map_data("state")
+
+# Subset distinct sites
+sites <- 
+  CAREER_sites %>% 
+  select(SiteName, Organization, Latitude, Longitude) %>% 
+  distinct(SiteName, .keep_all = TRUE) 
+
+# Continental US
+map_continentalUS <- 
+  ggplot() +
+  # State and country outlines
+  geom_polygon(data = world.map, aes(x = long, y = lat, group = group), 
+               color = "black", size = 0.2, fill = NA) +
+  geom_polygon(data = states.map, aes(x = long, y = lat, group = group), 
+               color = "grey", size = 0.2, fill = NA) +
+  geom_polygon(data = subset(world.map, region == "USA"), 
+               aes(x = long, y = lat, group = group), 
+               color = "black", size = 0.2, fill = NA) +
+  # Location markers and labels
+  #geom_text_repel(data = filter(sites, Longitude < -70), 
+   #               aes(x = Longitude, y = Latitude, 
+    #                  label = rownames(filter(sites, Longitude < -70))), 
+     #              size = 3, segment.color = "black") +
+  # Location markers
+  geom_point(data = sites, aes(x = Longitude, y = Latitude, 
+                                      fill = Organization), 
+             shape = 21, size = 3, color = "black", alpha = 0.7) +
+  # Coordinates
+  coord_map(projection = "azequalarea",
+            xlim = c(-115,-80), ylim = c(15, 67)) +
+  # Axis labels
+  xlab("Longitude") +
+  ylab("Latitude") +
+  # Theme adjustments
+  theme_classic() +
+  labs(tag = "a") +
+  theme(legend.direction ="vertical", 
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 10),
+        legend.key.height = unit(0.25, 'cm'),
+        legend.position = c(0.15, 0.1),
+        axis.text = element_text(color = "black", size = 10),
+        axis.title = element_text(size = 12),
+        panel.background = element_rect(color = "black"),
+        panel.grid = element_line(color = "red")) +
+  scale_fill_manual(values = ibm4) +
+  scale_color_manual(values = ibm4) 
+
+# Alaska
+map_alaska <- 
+  ggplot() +
+  # State and country outlines
+  geom_polygon(data = world.map, aes(x = long, y = lat, group = group), 
+               color = "black", size = 0.2, fill = NA) +
+  coord_map(projection = "azequalarea",
+            xlim = c(-175,-135), ylim = c(50, 75)) +
+  geom_polygon(data = states.map, aes(x = long, y = lat, group = group), 
+               color = "grey", size = 0.2, fill = NA) +
+  geom_polygon(data = subset(world.map, region == "USA"), 
+               aes(x = long, y = lat, group = group), 
+               color = "black", size = 0.2, fill = NA) +
+  # Location markers and labels
+  #geom_label_repel(data = sites, aes(x = Longitude, y = Latitude, 
+   #                                  label = rownames(sites)), 
+    #               size = 3, segment.color = "black", 
+     #              label.size = 0.6) +
+  # Location markers
+  geom_point(data = sites, aes(x = Longitude, y = Latitude, 
+                                      fill = Organization), 
+             shape = 21, size = 3, color = "black", alpha = 0.7) +
+  # Theme adjustments
+  theme_classic() +
+  labs(tag = "b") +
+  theme(legend.direction ="vertical", 
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 10),
+        legend.key.height = unit(2, 'cm'),
+        axis.text = element_text(color = "black", size = 10),
+        axis.title = element_blank(),
+        panel.background = element_rect(color = "black")) +
+  scale_fill_manual(values = ibm4) +
+  scale_color_manual(values = ibm4) +
+  guides(fill = "none")
+
+# Puerto Rico
+map_pr <- 
+  ggplot() +
+  # State and country outlines
+  geom_polygon(data = world.map, aes(x = long, y = lat, group = group), 
+               color = "black", size = 0.2, fill = NA) +
+  coord_map(projection = "azequalarea",
+            xlim = c(-68,-65), ylim = c(17, 19)) +
+  geom_polygon(data = states.map, aes(x = long, y = lat, group = group), 
+               color = "grey", size = 0.2, fill = NA) +
+  geom_polygon(data = subset(world.map, region == "USA"), 
+               aes(x = long, y = lat, group = group), 
+               color = "black", size = 0.2, fill = NA) +
+  # Location markers and labels
+  #geom_text_repel(data = filter(sites, Longitude > -70), 
+   #               aes(x = Longitude, y = Latitude, 
+    #                  label = rownames(filter(sites, Longitude > -70))), 
+     #              size = 3, segment.color = "black") +
+  # Location markers
+  geom_point(data = sites, aes(x = Longitude, y = Latitude, 
+                                      fill = Organization), 
+             shape = 21, size = 3, color = "black", alpha = 0.7) +
+  # Theme adjustments
+  theme_classic() +
+  labs(tag = "c") +
+  theme(axis.text = element_text(color = "black", size = 10),
+        axis.title = element_blank(),
+        panel.background = element_rect(color = "black")) +
+  scale_fill_manual(values = ibm4) +
+  scale_color_manual(values = ibm4) +
+  guides(fill = "none")
+
+# Combine maps into a single plot
+grob <- 
+  ggdraw() +
+  draw_plot(map_continentalUS) +
+  draw_plot(map_alaska, x = 0.15, y = 0.67, width = 0.3, height = 0.3) +
+  draw_plot(map_pr, x = 0.62, y = 0.02, width = 0.3, height = 0.3)
+
+ggsave(grob, filename = "plots/Map_CAREERInlay.png", width = 7, height = 7, 
+       units = "in", dpi = 300)
+
+grob
+```
+
+
+
+```{r map_NEONsites, eval = F, fig.cap="Map of NEON study sites.", fig.height=6, fig.width=10, fig.fullwidth = T}
+##### Plot CAREER Site Map #####
+# Pull state map data
+world.map <- map_data("world")
+states.map <- map_data("state")
+
+NEON_sites <- subset(CAREER_sites, Organization == "NEON") %>% 
+  distinct(SiteName, .keep_all = TRUE)
+
+# Plot map
+ggplot() +
+  # State and country outlines
+  geom_polygon(data = world.map, aes(x = long, y = lat, group = group), 
+               color = "grey", size = 0.2, fill = NA) +
+  geom_polygon(data = states.map, aes(x = long, y = lat, group = group), 
+               color = "grey", size = 0.2, fill = NA) +
+  geom_polygon(data = subset(world.map, region == "USA"), 
+               aes(x = long, y = lat, group = group), 
+               color = "black", size = 0.2, fill = NA) +
+  # Location markers and labels
+  geom_label_repel(data = NEON_sites %>% 
+                     select(SiteName, Latitude, Longitude) %>% 
+                     distinct(SiteName, .keep_all = TRUE), 
+                   aes(x = Longitude, y = Latitude, label = SiteName), 
+                   box.padding = 0.6, size = 2, nudge_x = 0.01, 
+                   segment.size = 0.2, segment.color = "black", 
+                   label.size = 0.4) +
+  geom_point(data = NEON_sites %>% 
+                     select(SiteName, Latitude, Longitude) %>% 
+                     distinct(SiteName, .keep_all = TRUE), 
+             aes(x = Longitude, y = Latitude), 
+             shape = 21, fill = "#FFB000",
+             color = "black", size = 3, stroke = 1) +
+  coord_fixed(1.3, xlim = c(-180,-30), ylim = c(10, 75)) +
+  # Theme adjustments
+  theme_nothing() +
+  theme(panel.background = element_rect(color = "black", fill = "white")) +
+  scale_fill_manual(values = ibm4) +
+  guides(fill = "none")
+
+ggsave(filename = "plots/NEONSitesMap.png", width = 4, height = 2, 
+       units = "in", dpi = 400)
+```
+
+# Metabolism
+
+```{r plotNEPmonthlymean, eval = F, fig.cap="Time series data of daily NEP (grey lines) and calculated mean NEP for each day of year (colored lines, A), and calculated mean monthly NEP (B) for the period of record. Shaded ribbons (B) represent standard deviation of NEP.", fig.height=5.5, fig.width = 8}
+# West to east order of sites
+# filter out non-annual siteso
+      # hop brook
+      # blaine creek 
+      # prieta stream
+      # mcrae (needs rerun)
+
+metabPlot <- 
+  CAREER_sites %>%
+  select(SiteName, Longitude, date) %>%
+  mutate(year = year(date)) %>%
+  rename(samplingDate = date) %>%
+  full_join(., CAREER_metabolism) %>%
+  filter(!SiteName %in% c("Hop Brook", "Blaine Creek", "Prieta Stream", "McRae Creek",
+                          "1300 E Red Butte Creek", "Lower Knowton Fork Red Butte Creek",
+                          "Kings Creek", "Hubbard Brook", "Sonadora Stream", "Alexander Springs",
+                          "South Fork Mink Creek", "Caribou Creek"))
+
+# add in a day of year column
+metabPlot$doy <- yday(metabPlot$date)
+metabPlot$year <- year(metabPlot$date)
+#Factorize site name by latitude
+metabPlot$SiteName <- reorder(metabPlot$SiteName, metabPlot$Longitude)
+
+# Plot of DOY vs GPP or ER, faceted by site
+#a <- 
+  ggplot(data = CAREER_metabolism) +
+  # Facet wrap plots
+  facet_wrap(~SiteName, nrow = 3) +
+  # Lines for all years of data
+  geom_line(aes(x = DOY, y = NEP, linetype = year), color = "darkgrey", alpha = 0.7) +
+  # Lines for mean data
+  geom_line(data = modelResults_DOY, aes(x = DOY, y = NEP_mean, color = site)) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  # Axis labels and scales
+  ylab(expression("NEP (g"~O[2]~m^2~"d"^{-1}*")")) +
+  xlab("Day of year") +
+  labs(tag = "A") +
+  # Remove legend for site
+  guides(color = FALSE, linetype = guide_legend(nrow = 3, title = "Year")) +
+  # Theme adjustments
+  theme_classic() +
+  theme(axis.text = element_text(color = "black"), 
+        panel.background = element_rect(color = "black"),
+        legend.position = "bottom") +
+  # Color scales
+  scale_color_brewer(palette = 2, type = "qual")
+
+# Plot of average NEP by month, all sites on one plot
+b <- 
+  ggplot(data = modelResults_monthly, aes(x = month, group = site)) +
+  # Ribbon for visualizing standard error
+  geom_ribbon(aes(ymin = NEP_mean-NEP_sd, 
+                  ymax = NEP_mean+NEP_sd, fill = site), alpha = 0.1)+
+  # Line and points for mean NEP
+  geom_line(aes(y = NEP_mean, color = site)) +
+  geom_point(aes(y = NEP_mean, color = site), 
+             shape = 21, fill = "white", size = 2) +
+  # Horizontal line at y = 0
+  geom_hline(yintercept = 0, linetype = 2) +
+  # Axis labels and scales
+  labs(tag = "B", fill = "Site", color = "Site") +
+  ylab(expression("NEP (g"~O[2]~m^2~"d"^{-1}*")")) +
+  xlab("Day of year") +
+  # Theme adjustments
+  guides(color = guide_legend(nrow = 3), fill = guide_legend(nrow = 3))+
+  theme_classic() +
+  theme(axis.text = element_text(color = "black"), 
+        panel.background = element_rect(color = "black"), 
+        legend.position = "bottom") +
+  # Color scales
+  scale_color_brewer(palette = 2, type = "qual") +
+  scale_fill_brewer(palette = 2, type = "qual")
+
+grid.arrange(a,b, ncol = 2)
+```
+
+```{r plotNEPloess, eval = F, fig.cap="Time series data of daily NEP (grey lines) and calculated mean NEP for each day of year (colored lines, A), and annual trends in NEP over the period of record visualized using local polynomial regression fitting (LOESS, B). Shaded ribbons (B) represent 95% confidence interval on LOESS estimate.", fig.height=5.5, fig.width = 8}
+# Plot of DOY vs GPP or ER, faceted by site
+c <- 
+  ggplot(data = NULL) +
+  # Facet wrap plots
+  facet_wrap(~site, nrow = 3) +
+  # Lines for all years of data
+  geom_line(data = modelResults_all, aes(x = DOY, y = NEP, linetype = year), color = "darkgrey", alpha = 0.7) +
+  # Lines for mean data
+  geom_line(data = modelResults_DOY, aes(x = DOY, y = NEP_mean, color = site)) +
+  
+  geom_hline(yintercept = 0, linetype = 2) +
+  # Axis labels and scales
+  ylab(expression("NEP (g"~O[2]~m^2~"d"^{-1}*")")) +
+  xlab("Day of year") +
+  labs(tag = "A") +
+  # Remove legend for site
+  guides(color = FALSE, linetype = guide_legend(nrow = 3, title = "Year")) +
+  # Theme adjustments
+  theme_classic() +
+  theme(axis.text = element_text(color = "black"), 
+        panel.background = element_rect(color = "black"),
+        legend.position = "bottom") +
+  # Color scales
+  scale_color_brewer(palette = 2, type = "qual")
+
+# LOESS smooth
+d <- 
+  ggplot(data = modelResults_all, aes(x = DOY, y = NEP)) +
+  stat_smooth(aes(color = site, fill = site), method = "loess") +
+  # Horizontal line at y = 0
+  geom_hline(yintercept = 0, linetype = 2) +
+  # Axis labels and scales
+  labs(tag = "B", fill = "Site", color = "Site") +
+  ylab(expression("NEP (g"~O[2]~m^2~"d"^{-1}*")")) +
+  xlab("Month") +
+  # Theme adjustments
+  guides(color = guide_legend(nrow = 3), fill = guide_legend(nrow = 3))+
+  theme_classic() +
+  theme(axis.text = element_text(color = "black"), 
+        panel.background = element_rect(color = "black"), 
+        legend.position = "bottom") +
+  # Color scales
+  scale_color_brewer(palette = 2, type = "qual") +
+  scale_fill_brewer(palette = 2, type = "qual")
+
+grid.arrange(c,d, ncol = 2)
+
+
+
+# Compute PCA of metabolism data
+#prcomp(modelResults_all[,c(3,6,12,13)], center = T, scale. = T)
+
+
+#modelResults_all %>%
+ # select(GPP, ER, NEP, DOY)
+
+# Compute Kmediods using pam (Partitioning Around Medoids) from cluster
+#collsub_kmediods <- pam(colleges_sub, k = 3)
+# For K-mediods results
+#fviz_cluster(collsub_kmediods, data = colleges_sub) + 
+ # labs(tag = "B", title = "K-mediods clustering") +
+#  theme_classic() +
+#  theme(legend.position = "none")
+```
+
+```{r supplemental table: K600 priors for neon sites}
+params <- read_csv("data/metabolism/metabolism-parameters.csv")
+
+# If any 0s in depth, K600.est will be Inf, change to NA
+params$K600.estimate[is.infinite(params$K600.estimate)] <- NA
+
+neonsites <- filter(CAREER_sites, Organization == "NEON")
+
+# K600 priors were the log10 mean of the K600 estimates of that day
+k600priors <-
+  params %>%
+  group_by(SiteName, date) %>%
+  summarise(Q_Ls = round(mean(discharge, na.rm = TRUE)*1000, 3),
+            K600_d = round(mean(K600.estimate, na.rm = TRUE), 3)) %>%
+  #filter(!is.nan(K600)) %>%
+  arrange(SiteName, date) %>%
+  filter(SiteName %in% neonsites$SiteName)
+
+write_csv(k600priors, "outputs/supplemental_table_estimated-k600.csv")
+```
+
+```{r supplemental table: metabolism modeling results}
+metab <- read_csv("data/metabolism/metabolism-rates.csv")
+
+metab_table <- 
+  metab %>%
+  group_by(SiteName, date) %>%
+  select(SiteName, date, 
+         GPP_daily_mean, GPP_daily_sd, GPP_daily_Rhat,
+         ER_daily_mean, ER_daily_sd, ER_daily_Rhat,
+         K600_daily_mean, K600_daily_sd, K600_daily_Rhat,
+         DO_R2_mean, DO_R2_sd, DO_R2_Rhat) %>%
+  transmute(date = as.character(date),
+            GPP = paste0(round(GPP_daily_mean, 3), " (±", 
+                         round(GPP_daily_sd, 3), ")"),
+            ER = paste0(round(ER_daily_mean, 3), " (±", 
+                         round(ER_daily_sd, 3), ")"),
+            K600 = paste0(round(K600_daily_mean, 3), " (±", 
+                         round(K600_daily_sd, 3), ")"),
+            DO_R2 = paste0(round(DO_R2_mean, 3), " (±", 
+                         round(DO_R2_sd, 3), ")"),
+            Rhat_GPP = round(GPP_daily_Rhat, 3),
+            Rhat_ER = round(ER_daily_Rhat, 3),
+            Rhat_K600 = round(K600_daily_Rhat, 3)) %>%
+  arrange(SiteName, date)
+
+write_csv(metab_table, "outputs/supplemental_table_metabolism-rates.csv")
+```

@@ -1,0 +1,109 @@
+SiteName,date,ProcessName,ReachFlux_ugNm2hr_mean,ReachFlux_ugNm2hr_sd
+1300 E Red Butte Creek,2017-07-19,Denitrification_amended,226.09150483571312,352.528900161376
+1300 E Red Butte Creek,2017-07-19,Denitrification_unamended,302.86414611833686,313.90433173748664
+1300 E Red Butte Creek,2017-07-19,Nfixation_unamended,0.680222702267191,0.8756738994876635
+Alexander Springs,2018-06-02,Denitrification_amended,4321.355251867845,5935.090086383758
+Alexander Springs,2018-06-02,Denitrification_unamended,7638.155779419046,10522.210101282391
+Alexander Springs,2018-06-02,Nfixation_unamended,87.24305255956189,75.60407090297598
+Arikaree River,2017-07-11,Denitrification_amended,13781.371383474556,4356.116528389184
+Arikaree River,2017-07-11,Denitrification_unamended,808.3616759228313,574.6075327444294
+Arikaree River,2017-07-11,Nfixation_unamended,223.71603084597956,209.60829218293324
+Arikaree River,2019-05-24,Denitrification_amended,1749.7117446426141,1164.7145887573708
+Arikaree River,2019-05-24,Denitrification_unamended,646.6802291657112,512.0765468311095
+Arikaree River,2019-05-24,Nfixation_unamended,279.7595126948606,113.52798126383497
+Black Earth Creek,2017-08-08,Denitrification_amended,15455.167760824452,3870.24515929538
+Black Earth Creek,2017-08-08,Denitrification_unamended,7179.028386864176,889.9196695179231
+Black Earth Creek,2017-08-08,Nfixation_unamended,0.801336432630825,0.6242517539786417
+Blacktail Deer Creek,2019-07-30,Denitrification_amended,NA,NA
+Blacktail Deer Creek,2019-07-30,Denitrification_unamended,NA,NA
+Blacktail Deer Creek,2019-07-30,Nfixation_unamended,305.29467224624125,206.68434532211654
+Blaine Creek,2019-08-10,Denitrification_amended,0,0
+Blaine Creek,2019-08-10,Denitrification_unamended,0,0
+Blaine Creek,2019-08-10,Nfixation_unamended,0.216708735298743,0.2127420052827
+Brewery Creek,2017-08-11,Denitrification_amended,12115.13425793567,7950.344737773417
+Brewery Creek,2017-08-11,Denitrification_unamended,6171.676117362235,2945.2360947881807
+Brewery Creek,2017-08-11,Nfixation_unamended,0.13336790170061003,0.1886106953702444
+Caribou Creek,2019-07-09,Denitrification_amended,587.515720640661,1017.607078395065
+Caribou Creek,2019-07-09,Denitrification_unamended,742.6120342762852,419.25634345965636
+Caribou Creek,2019-07-09,Nfixation_unamended,0.13773898419434635,0.22394569406973333
+Dowst Cate Forest,2018-08-10,Denitrification_amended,668.5225249140179,824.3316754417511
+Dowst Cate Forest,2018-08-10,Denitrification_unamended,31.5448879148401,0
+Dowst Cate Forest,2018-08-10,Nfixation_unamended,0,0
+Eno River,2017-06-04,Denitrification_amended,820.7894924463051,719.3265775062496
+Eno River,2017-06-04,Denitrification_unamended,2758.6633509068647,820.6035740115556
+Eno River,2017-06-04,Nfixation_unamended,1.3521047570892593,0.6900894612629294
+Hop Brook,2018-08-15,Denitrification_amended,132.78867407776985,130.17472014374283
+Hop Brook,2018-08-15,Denitrification_unamended,124.69902003914184,184.69408443799395
+Hop Brook,2018-08-15,Nfixation_unamended,0,0
+Hubbard Brook,2018-08-07,Denitrification_amended,94.72477476235608,196.256647445208
+Hubbard Brook,2018-08-07,Denitrification_unamended,57.5310121890775,47.61658718862157
+Hubbard Brook,2018-08-07,Nfixation_unamended,0,0
+Ichetucknee River,2018-05-31,Denitrification_amended,11236.492654857117,7401.989349018494
+Ichetucknee River,2018-05-31,Denitrification_unamended,1903.2749617924983,1391.820475478537
+Ichetucknee River,2018-05-31,Nfixation_unamended,5.688765021171326,7.125947922237099
+Kings Creek,2018-06-13,Denitrification_amended,7716.847570210741,5495.004528725006
+Kings Creek,2018-06-13,Denitrification_unamended,310.3305900816586,490.3235847665852
+Kings Creek,2018-06-13,Nfixation_unamended,61.81063253423563,52.79217415205708
+Kings Creek,2019-05-10,Denitrification_amended,354.82448879606176,587.9391564152421
+Kings Creek,2019-05-10,Denitrification_unamended,6.305235567098691,7.451643414619142
+Kings Creek,2019-05-10,Nfixation_unamended,1.8539291408707945,0.676145642121214
+Lower Knowton Fork Red Butte Creek,2017-07-18,Denitrification_amended,3228.145125199191,2892.0591107405044
+Lower Knowton Fork Red Butte Creek,2017-07-18,Denitrification_unamended,118.04990215147663,204.06015534776662
+Lower Knowton Fork Red Butte Creek,2017-07-18,Nfixation_unamended,2.539165911430277,2.607532887448418
+Martha Creek,2019-08-06,Denitrification_amended,0,0
+Martha Creek,2019-08-06,Denitrification_unamended,280.6719513453715,441.57419412646885
+Martha Creek,2019-08-06,Nfixation_unamended,7.066783155869934,10.536266512724422
+McDiffit Creek,2018-06-12,Denitrification_amended,13503.75791608934,3487.2969259447905
+McDiffit Creek,2018-06-12,Denitrification_unamended,1093.4308723921877,200.25045705327142
+McDiffit Creek,2018-06-12,Nfixation_unamended,18.372333459166335,16.589205715897755
+McRae Creek,2019-08-03,Denitrification_amended,2071.20296947224,1914.3051929310209
+McRae Creek,2019-08-03,Denitrification_unamended,710.515101748645,709.4772239153199
+McRae Creek,2019-08-03,Nfixation_unamended,0.05016166996253445,0.07624298093932862
+New Hope Creek,2017-06-03,Denitrification_amended,1640.7016978503243,500.28933856353
+New Hope Creek,2017-06-03,Denitrification_unamended,427.4465703013043,525.5657690244212
+New Hope Creek,2017-06-03,Nfixation_unamended,2.58178882511071,1.6312400365269397
+New Hope Creek,2018-05-27,Denitrification_amended,839.5432399747899,632.3092507122926
+New Hope Creek,2018-05-27,Denitrification_unamended,276.34464307559784,42.05709890811525
+New Hope Creek,2018-05-27,Nfixation_unamended,3.918656849684535,6.061331974874576
+Pilgrim River,2018-06-21,Denitrification_amended,149.4480965123795,55.066359410179075
+Pilgrim River,2018-06-21,Denitrification_unamended,232.6679229648306,189.4698087022526
+Pilgrim River,2018-06-21,Nfixation_unamended,17.517457443809196,1.5792472712487833
+Pilgrim River,2018-07-17,Denitrification_amended,735.0430467382007,696.2905664532341
+Pilgrim River,2018-07-17,Denitrification_unamended,626.3205006148498,949.5184444374257
+Pilgrim River,2018-07-17,Nfixation_unamended,1.566237044661607,1.3573634359008258
+Pilgrim River,2019-06-13,Denitrification_amended,2047.4016747556666,507.64545702129874
+Pilgrim River,2019-06-13,Denitrification_unamended,311.8338240952996,501.99716431907945
+Pilgrim River,2019-06-13,Nfixation_unamended,1.8566817727650875,1.5465638919293108
+Pilgrim River,2019-09-09,Denitrification_amended,210.06393245862037,297.0752622484069
+Pilgrim River,2019-09-09,Denitrification_unamended,797.1458480054041,813.0054644775494
+Pilgrim River,2019-09-09,Nfixation_unamended,0.36895026731483066,0.2050042431152151
+Poker Creek,2019-07-10,Denitrification_amended,972.7511321221496,1064.2017475747598
+Poker Creek,2019-07-10,Denitrification_unamended,196.65963594343077,340.6244812520202
+Poker Creek,2019-07-10,Nfixation_unamended,0.8472420343036301,0.7076130518105614
+Pringle Creek,2018-06-09,Denitrification_amended,9834.435016172749,3277.2644331555375
+Pringle Creek,2018-06-09,Denitrification_unamended,1762.8376233166425,1617.4877768094425
+Pringle Creek,2018-06-09,Nfixation_unamended,28.05170470651693,13.66536092536611
+Quebrada Prieta,2019-03-03,Denitrification_amended,39.4567545497493,2.60525491568539
+Quebrada Prieta,2019-03-03,Denitrification_unamended,0,0
+Quebrada Prieta,2019-03-03,Nfixation_unamended,0,0
+Quebrada Sonadora,2019-03-05,Denitrification_amended,724.3578682787253,279.41099844310475
+Quebrada Sonadora,2019-03-05,Denitrification_unamended,280.7190073933012,266.6921309687114
+Quebrada Sonadora,2019-03-05,Nfixation_unamended,0.6148137470095029,0.8532373397778744
+Rio Cupeyes,2019-02-23,Denitrification_amended,10612.570215007128,2742.782066182437
+Rio Cupeyes,2019-02-23,Denitrification_unamended,8766.512135148228,3422.172428261694
+Rio Cupeyes,2019-02-23,Nfixation_unamended,0.01496349898646269,0.019317552480847062
+Rio Guillarte,2019-02-21,Denitrification_amended,0,0
+Rio Guillarte,2019-02-21,Denitrification_unamended,44.054490303731214,75.50353806343047
+Rio Guillarte,2019-02-21,Nfixation_unamended,0.2589804376375357,0.35783201662693614
+South Fork Mink Creek,2017-07-27,Denitrification_amended,1720.5406320290942,1474.6372994400206
+South Fork Mink Creek,2017-07-27,Denitrification_unamended,133.0277821499726,77.25548602500982
+South Fork Mink Creek,2017-07-27,Nfixation_unamended,342.7650882928195,119.40881808104885
+Sycamore Creek,2019-05-14,Denitrification_amended,334.8120894817384,23.26709699286096
+Sycamore Creek,2019-05-14,Denitrification_unamended,484.89509242032784,685.745216028981
+Sycamore Creek,2019-05-14,Nfixation_unamended,1.4904072009583569,1.2174398769320665
+Wednesday Hill Brook,2018-08-09,Denitrification_amended,624.862409994587,509.0198129950395
+Wednesday Hill Brook,2018-08-09,Denitrification_unamended,339.6852372945908,397.9755957583309
+Wednesday Hill Brook,2018-08-09,Nfixation_unamended,2.6238303605784847,3.4260673330120257
+Wet Beaver Creek,2019-05-16,Denitrification_amended,8.446416056792064,11.945036140961204
+Wet Beaver Creek,2019-05-16,Denitrification_unamended,703.6089928313131,883.7066137103061
+Wet Beaver Creek,2019-05-16,Nfixation_unamended,28.60390522043911,17.148604435223422

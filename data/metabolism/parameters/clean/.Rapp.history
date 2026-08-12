@@ -1,0 +1,2 @@
+load("/Users/michelle/GoogleDrive/PhD/Research/Analysis_Chapter1_CAREERProject/CAREER_DataAnalysis/data/metabolism/parameters/clean/MetabolismParameters_Clean_KING_2018-01_2018-12.rds")
+load("/Users/michelle/GoogleDrive/PhD/Research/Analysis_Chapter1_CAREERProject/CAREER_DataAnalysis/data/metabolism/parameters/clean/MetabolismParameters_Clean_Blaine-MT_2019-08-09_2019-08-16.rds")

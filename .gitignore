@@ -1,0 +1,15 @@
+# Ignore history files
+.DS_Store
+.Rhistory
+*.log
+
+# Ignore hidden iOS files
+Icon*
+
+# Ignore MIMS calculation folder (for now)
+data/MIMS_N2Flux/*
+
+# Ignore RDS files in the raw metabolism modeling results folder (big files)
+data/metabolism/metabolismModels/raw/*.rds
+data/metabolism/parameters/edi.1735.2/*.rds
+data/metabolism/models/.Rapp.history

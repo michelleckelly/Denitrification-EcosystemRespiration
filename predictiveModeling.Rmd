@@ -1,0 +1,822 @@
+---
+title: "CAREER Predictive Modeling"
+author: "Michelle Catherine Kelly"
+date: "`r Sys.Date()`"
+---
+
+```{r setup}
+library(tidyverse)
+library(lubridate)
+library(gridExtra)
+library(corrplot)
+library(svMisc)
+library(ggfortify)
+library(AppliedPredictiveModeling)
+library(caret)
+library(knitr)
+library(RANN)
+library(kernlab)
+library(RWeka) # for model trees
+library(gbm)
+library(randomForest)
+library(rlang) # for hash
+
+# Colorblind-friendly palette developed by IBM, 2, 4 and 5 color version
+ibm2 <- c("#648FFF", "#ffb000")
+ibm4 <- c("#785EF0", "#DC267F", "#FE6100", "#FFB000")
+ibm5 <- c("#648FFF", "#785EF0", "#DC267F", "#FE6100", "#FFB000")
+ibm6 <- c("#648FFF", "#785EF0", "#DC267F", "#FE6100", "#FFB000", "#000000")
+```
+
+# 1. Assemble CAREER Data Matrix
+
+```{r compile CAREER data matrix, eval = FALSE}
+### Load list of CAREER sites ##################################################
+CAREER_sites <- read.csv(file = "data/CAREER_SiteAttributes.csv")
+CAREER_sites <- 
+  CAREER_sites %>%
+  mutate(date = mdy(date), 
+         TDN_TP = (TDN_mgL*1000)/TP_ugL, 
+         DIN_SRP = DIN_ugNL/SRP_ugL,
+         LandCover_Water_perc = LandCover_Water_km2 / WatershedArea_km2 * 100,
+         LandCover_Trees_perc = LandCover_Trees_km2 / WatershedArea_km2 * 100,
+         LandCover_Grass_perc = LandCover_Grass_km2 / WatershedArea_km2 * 100,
+         LandCover_FloodedVeg_perc = LandCover_FloodedVeg_km2 / WatershedArea_km2 * 100,
+         LandCover_Crop_perc = LandCover_Crop_km2 / WatershedArea_km2 * 100,
+         LandCover_ShrubScrub_perc = LandCover_ShrubScrub_km2 / WatershedArea_km2 * 100,
+         LandCover_Built_perc = LandCover_Built_km2 / WatershedArea_km2 * 100,
+         LandCover_Bare_perc = LandCover_Bare_km2 / WatershedArea_km2 * 100) %>%
+  select(-c(Organization, NEON_SiteID, StreamPULSE_SiteID))
+
+### Grab percent cover of lumped substrate categories ##########################
+substrateCover <- read_csv("data/processRates/SubstrateRates_ReachScaled.csv")
+substrateCover <- 
+  substrateCover %>%
+  select(SiteName, date, lumpSubstrate, PercCover) %>%
+  distinct() %>%
+  mutate(PercCover = PercCover*100) %>%
+  pivot_wider(names_from = lumpSubstrate, values_from = PercCover) %>%
+  rename(RockCover_perc = rock, SedimentCover_perc = sediment,
+         CWDCover_perc = CWD, VegCover_perc = vegetation) %>%
+  # no CPOM cover
+  select(-cpom)
+# Replace NAs with 0s
+substrateCover[is.na(substrateCover)] <- 0
+
+### Load site substrate diversity ##############################################
+# Based on lumped categories
+diversityLump <- read_csv(file = "./data/substrateCover/CAREER_reachDiversity-Lumped.csv") 
+
+### Load metabolism parameters #################################################
+CAREER_metParams <- read_csv(file = "data/metabolism/metabolism-parameters.csv")
+
+# We need to summarise parameters to one value per day
+CAREER_metParams <- 
+  CAREER_metParams %>%
+  group_by(SiteName, date, location) %>%
+  summarise(WaterTemp_C_mean = mean(temp.water),
+            DO_mgL_mean = mean(DO.obs),
+            Depth_m = mean(depth),
+            Discharge_m3s = mean(discharge),
+            Light_PAR_mean = mean(light.data)) %>%
+  arrange(SiteName, date, location)
+
+# At Blacktail Deer Creek and Hop Brook, we modeled metabolism with upstream 
+# sensor data, so for the NEON sites that are not these two sites, select downstream data
+CAREER_metParams <-
+  CAREER_metParams %>%
+  mutate(location = case_when(SiteName == "Blacktail Deer Creek" |
+                                SiteName == "Hop Brook" ~ NA,
+                              is.character(location) ~ location)) %>%
+  filter(location %in% c("downstream", NA)) %>%
+  select(-location)
+
+### Load whole reach rates #####################################################
+CAREER_wholeReach <- read_csv(file = "data/processRates/StreamRates_ReachScaled.csv")
+CAREER_wholeReach <- 
+  CAREER_wholeReach %>%
+  mutate(mgNm2hr_mean = ReachFlux_ugNm2hr_mean/1000) %>%
+  select(-c(ReachFlux_ugNm2hr_sd, ReachFlux_ugNm2hr_mean)) %>%
+  pivot_wider(names_from = ProcessName, 
+              values_from = mgNm2hr_mean,
+              names_glue = "{ProcessName}_{.value}") 
+
+### Load metabolism ############################################################
+CAREER_metabolism <- read_csv(file = "data/metabolism/metabolism-rates.csv")
+CAREER_metabolism <- 
+  CAREER_metabolism %>%
+  select(c("date", "SiteName", 
+           "GPP_daily_mean", "GPP_daily_sd",
+           "ER_daily_mean", "ER_daily_sd",
+           "K600_daily_mean", "K600_daily_sd"))
+
+# Count number of metabolism estimates that don't meet fit criteria
+# Neg GPP sites
+na.omit(CAREER_metabolism[CAREER_metabolism$GPP_daily_mean + 
+                            CAREER_metabolism$GPP_daily_sd < 0,])
+# Pos ER sites
+na.omit(CAREER_metabolism[CAREER_metabolism$ER_daily_mean - 
+                            CAREER_metabolism$ER_daily_sd > 0,])
+
+# Filter metabolism estimates that don't meet fit criteria
+for(i in 1:nrow(CAREER_metabolism)){
+  if(!is.na(CAREER_metabolism$GPP_daily_mean[i]) &
+     CAREER_metabolism$GPP_daily_mean[i] < 0){
+    # Test if SD overlaps with 0, if it does, set GPP to 0
+    if(CAREER_metabolism$GPP_daily_mean[i] + 
+       CAREER_metabolism$GPP_daily_sd[i] > 0){
+      CAREER_metabolism$GPP_daily_mean[i] <- 0
+    }else{
+      CAREER_metabolism[i, c("GPP_daily_mean", "GPP_daily_sd",
+                             "ER_daily_mean", "ER_daily_sd",
+                             "K600_daily_mean", "K600_daily_sd")] <- NA
+    }
+  }
+  if(!is.na(CAREER_metabolism$ER_daily_mean[i]) &
+     CAREER_metabolism$ER_daily_mean[i] > 0){
+    # Test if SD overlaps with 0, if it does, set ER to 0
+    if(CAREER_metabolism$ER_daily_mean[i] - 
+       CAREER_metabolism$ER_daily_sd[i] < 0){
+      CAREER_metabolism$ER_daily_mean[i] <- 0
+    } else{
+      CAREER_metabolism[i, c("GPP_daily_mean", "GPP_daily_sd",
+                             "ER_daily_mean", "ER_daily_sd",
+                             "K600_daily_mean", "K600_daily_sd")] <- NA
+    }
+  }
+}
+
+### Load energy budgets ########################################################
+#CAREER_energyBudgets <- read_csv(file = "data/CAREER_energyBudgets.csv")
+#CAREER_energyBudgets <- 
+#  CAREER_energyBudgets %>%
+#  select(-c(EnergyERloess_kCalm2hr))
+
+### Create CAREER matrix of all day-of sampling information ####################
+CAREERmatrix <- 
+  CAREER_sites %>%
+  left_join(., substrateCover) %>%
+  left_join(., diversityLump) %>%
+  left_join(., CAREER_metParams) %>%
+  left_join(., CAREER_wholeReach) %>%
+  left_join(., CAREER_metabolism) %>%
+  select(-c(LandCover_Water_km2, LandCover_Trees_km2, LandCover_Grass_km2,
+            LandCover_FloodedVeg_km2, LandCover_Crop_km2, LandCover_ShrubScrub_km2,
+            LandCover_Built_km2, LandCover_Bare_km2))
+
+#Save
+write_csv(CAREERmatrix, file = "data/CAREER_reachModeling.csv")
+```
+
+# 2. Predict CAREER
+
+```{r load data}
+# Load CAREER dataframe
+CAREERMod <- read_csv("data/CAREER_reachModeling.csv") 
+CAREERMod <- 
+  CAREERMod %>%
+  select(!contains(c("Denitrification_unamended", "Nfixation_unamended",
+                     "_sd", "Min_Elevation", "Max_Elevation", 
+                     "PAR_max", "C_max", "State", "SiteName", "date"))) %>%
+  mutate(ER_daily_mean = -1*(ER_daily_mean))
+CAREERMod$DIN_SRP[is.infinite(CAREERMod$DIN_SRP)] <- NA
+
+#### Visualize correlations ####################################################
+corMatrix <- 
+  cor(select(CAREERMod, -c(Ecoregion)), 
+      method = "spearman", 
+      use = "pairwise.complete.obs")
+# Pairwise correlation plot
+corrplot::corrplot(corMatrix, type = "upper", tl.cex = 0.5, tl.col = "black",
+                   diag = FALSE, addCoefasPercent = T)
+
+# Visualize NAs - TRUE = NA value
+CAREERMod %>%
+  ungroup() %>%
+  mutate(id = row_number()) %>%
+  gather(-id, key = "key", value = "val") %>%
+  mutate(isna = is.na(val)) %>%
+  ggplot(aes(y = key, x = id, fill = isna)) +
+  geom_raster() 
+
+# How much of PAR is missing?
+sum(is.na(CAREERMod$Light_PAR_mean))/length(CAREERMod$Light_PAR_mean) * 100
+
+#### Preprocess dataset ########################################################
+data_raw <- 
+  CAREERMod %>% 
+  # Remove columns that won't be used for modeling
+  #select(-c(SiteName, State, date, Study)) %>%
+  # Encode ecoregion as numeric hash
+  mutate(Ecoregion = as.numeric(strtoi(substr(map_chr(Ecoregion, hash), 26, 32), 16L)))
+str(data_raw)
+
+data_raw <-
+  data_raw %>%
+  select(Latitude:Ecoregion, Mean_Slope, WatershedArea_km2, LandCover_Crop_perc,
+         LandCover_Built_perc, ReachWidth_Avg_m, TransectDepth_Avg_cm, 
+         DOC_mgL, NH4_ugL, NO2NO3_ugL, SRP_ugL, DIN_ugNL, DIN_SRP, 
+         WaterTemp_C_mean, DO_mgL_mean, Discharge_m3s, 
+         Denitrification_amended_mgNm2hr_mean, GPP_daily_mean,
+         ER_daily_mean, CanopyCover_Avg_perc, TDN_mgL, TDN_TP, 
+         CWDCover_perc, RockCover_perc, VegCover_perc, SedimentCover_perc,
+         K600_daily_mean)
+
+#### Set resampling method #####################################################
+fitControl <- trainControl(method = "boot", number = 300)
+
+#### Set up parallel processing ################################################
+clust <- parallel::makeCluster(parallel::detectCores() - 1)
+doParallel::registerDoParallel(clust)
+```
+
+```{r train_CAREER_denitrification}
+# If we want to predict denitrification rate, we need to remove the rows that 
+# don't have a denitrification estimate
+data_denit <-
+  data_raw %>%
+  filter(!is.na(Denitrification_amended_mgNm2hr_mean))
+
+# Split the data into predictors and response
+# Response: Denitrification
+response <- data_denit$Denitrification_amended_mgNm2hr_mean
+predictors <- select(data_denit, -Denitrification_amended_mgNm2hr_mean)
+
+# Check for highly correlated predictors and remove highly correlated 
+# predictors using a cutoff value of 85%
+corMatrix <- 
+  cor(predictors, 
+      method = "spearman", 
+      use = "pairwise.complete.obs")
+highCorr <- findCorrelation(corMatrix, cutoff = 0.85)
+# View high correlation predictors
+message("Omitted highly correlated predictors above cutoff value of 0.85: ", paste(names(predictors[highCorr]), collapse = ", "))
+predictors <- predictors[-highCorr]
+str(predictors) # 34 observations, 26 variables
+
+# Visualize NAs - TRUE = NA value
+predictors %>%
+  ungroup() %>%
+  mutate(id = row_number()) %>%
+  gather(-id, key = "key", value = "val") %>%
+  mutate(isna = is.na(val)) %>%
+  ggplot(aes(y = key, x = id, fill = isna)) +
+  geom_raster() 
+
+# Summarise how many missing values per variable
+data.frame(variables = names(predictors),
+           naCount = colSums(is.na(predictors)),
+           naPerc = colSums(is.na(predictors)) / nrow(predictors) * 100) %>%
+  mutate(natotal = sum(naCount))
+
+# Center, scale, remove near-zero variables, and impute missing variables using
+# 5-nearest neighbors
+preproc <- preProcess(as.data.frame(predictors), 
+                      method = c("center", "scale", "knnImpute", "nzv"),
+                      k = 5, freqCut = 95/5)
+transfor <- predict(preproc, newdata = predictors)
+
+#### Split dataset ####
+set.seed(100) # Set seed for reproducability
+# Random split
+trainIndex <- createDataPartition(1:length(transfor$Latitude), p = 0.6, list = FALSE)
+predictors_train <- transfor[trainIndex,]
+predictors_test <- transfor[-trainIndex,]
+response_train <- response[trainIndex]
+response_test <- response[-trainIndex]
+
+### Linear regression ##########################################################
+set.seed(100)
+lmModel_boot <- train(method = "lm", x = predictors_train, y = response_train,
+                      trControl = fitControl)
+lmPred_boot <- predict(lmModel_boot, newdata = predictors_test)
+lmResults_boot <- postResample(pred = lmPred_boot, obs = response_test)
+
+### Partial least squares #####################################################
+set.seed(100)
+## Using bootstrapping resampling ##
+plsModel_boot <- train(method = "pls",
+                      tuneLength = 10,
+                      x = predictors_train, y = response_train,
+                      trControl = fitControl)
+# Check out tuning parameters
+plot(plsModel_boot, main = "PLS, bootstrap resampling")
+# Evaluate test set performance
+plsPred_boot <- predict(plsModel_boot, newdata = predictors_test)
+plsResults_boot <- postResample(pred = plsPred_boot, obs = response_test)
+
+### Ridge #####################################################################
+set.seed(100)
+## Using bootstrapping resampling ##
+ridgeModel_boot <- train(method = "ridge",
+                         tuneGrid = data.frame(.lambda = seq(0, 20, length = 20)),
+                         x = predictors_train, y = response_train,
+                         trControl = fitControl)
+# Check out tuning parameters
+plot(ridgeModel_boot, main = "Ridge, bootstrap resampling")
+# Evaluate test set performance
+ridgePred_boot <- predict(ridgeModel_boot, newdata = predictors_test)
+ridgeResults_boot <- postResample(pred = ridgePred_boot, obs = response_test)
+
+### Elastic net/lasso #########################################################
+enetGrid <- expand.grid(.lambda = c(1E-6, 0.00001, 0.0001, 0.001, 0.1, 0.5, 1, 2, 3), 
+                        .fraction = seq(0.05, 1, length = 20))
+set.seed(100)
+## Using bootstrapping resampling ##
+enetModel_boot <- train(method = "enet",
+                        tuneGrid = enetGrid,
+                        x = predictors_train, y = response_train,
+                        trControl = fitControl)
+# Check out tuning parameters
+plot(enetModel_boot, main = "Elastic Net, bootstrap resampling")
+# Evaluate test set performance
+enetPred_boot <- predict(enetModel_boot, newdata = predictors_test)
+enetResults_boot <- postResample(pred = enetPred_boot, obs = response_test)
+
+### Neural networks ###########################################################
+nnetGrid <- expand.grid(size = seq(from = 1, to = 27, by = 2),
+                        decay = seq(from = 0.1, to = 0.7, by = 0.1))
+set.seed(100)
+## Using bootstrapping resampling ##
+nnetModel_boot <- train(method = "nnet",
+                         tuneGrid = nnetGrid,
+                         x = predictors_train, y = response_train,
+                         trControl = fitControl)
+# Check out tuning parameters
+plot(nnetModel_boot, main = "Neural net, bootstrap resampling")
+# Evaluate test set performance
+nnetPred_boot <- predict(nnetModel_boot, newdata = predictors_test)
+nnetResults_boot <- postResample(pred = nnetPred_boot, obs = response_test)
+
+### Support vector machines ###################################################
+set.seed(100)
+## Using bootstrapping resampling ##
+svmModel_boot <- train(method = "svmRadial",
+                       tuneLength = 10,
+                       x = predictors_train, y = response_train,
+                       trControl = fitControl)
+# Check out tuning parameters
+plot(svmModel_boot, main = "Radial SVM, bootstrap resampling")
+# Evaluate test set performance
+svmPred_boot <- predict(svmModel_boot, newdata = predictors_test)
+svmResults_boot <- postResample(pred = svmPred_boot, obs = response_test)
+
+### MARS/FDA ##################################################################
+set.seed(100)
+## Using bootstrapping resampling ##
+marsModel_boot <- train(method = "earth",
+                       tuneGrid = expand.grid(.degree = 1:9, .nprune = 2:6),
+                       x = predictors_train, y = response_train,
+                       trControl = fitControl)
+marsModel_boot$results
+# Check out tuning parameters
+plot(marsModel_boot, main = "MARS, bootstrap resampling")
+# Evaluate test set performance
+marsPred_boot <- predict(marsModel_boot, newdata = predictors_test)
+marsResults_boot <- postResample(pred = marsPred_boot, obs = response_test)
+
+### K-nearest neighbors #######################################################
+set.seed(100)
+## Using bootstrapping resampling ##
+knnModel_boot <- train(method = "knn",
+                       tuneGrid = data.frame(.k = 1:30),
+                       x = predictors_train, y = response_train,
+                       trControl = fitControl)
+# Check out tuning parameters
+plot(knnModel_boot, main = "KNN, bootstrap resampling")
+# Evaluate test set performance
+knnPred_boot <- predict(knnModel_boot, newdata = predictors_test)
+knnResults_boot <- postResample(pred = knnPred_boot, obs = response_test)
+
+### Single trees ##############################################################
+set.seed(100)
+## Using bootstrapping resampling ##
+streeModel_boot <- train(method = "rpart2",
+                       tuneLength = 2,
+                       x = predictors_train, y = response_train,
+                       trControl = fitControl)
+# Check out tuning parameters
+plot(streeModel_boot, main = "Radial SVM, bootstrap resampling")
+# Evaluate test set performance
+streePred_boot <- predict(streeModel_boot, newdata = predictors_test)
+streeResults_boot <- postResample(pred = streePred_boot, obs = response_test)
+
+### Bagged trees ##############################################################
+set.seed(100)
+## Using bootstrapping resampling ##
+btreeModel_boot <- train(method = "treebag",
+                         x = predictors_train, y = response_train,
+                         trControl = fitControl)
+# Evaluate test set performance
+btreePred_boot <- predict(btreeModel_boot, newdata = predictors_test)
+btreeResults_boot <- postResample(pred = btreePred_boot, obs = response_test)
+
+### Random forest #############################################################
+set.seed(100)
+## Using bootstrapping resampling ##
+rforestModel_boot <- train(method = "rf",
+                           tuneLength = 24,
+                           x = predictors_train, y = response_train,
+                           trControl = fitControl)
+# Check out tuning parameters
+plot(rforestModel_boot, main = "Random forest, bootstrap resampling")
+# Evaluate test set performance
+rforestPred_boot <- predict(rforestModel_boot, newdata = predictors_test)
+rforestResults_boot <- postResample(pred = rforestPred_boot, obs = response_test)
+
+### Boosted trees #############################################################
+bmGrid <- expand.grid(interaction.depth = seq(1, 9, by = 2),
+                      n.trees = seq(50, 1000, by = 50),
+                      shrinkage = c(0.01, 0.1),
+                      n.minobsinnode = 3)
+set.seed(100)
+## Using bootstrapping resampling ##
+boostedModel_boot <- train(method = "gbm",
+                           tuneGrid = bmGrid,
+                           x = predictors_train, y = response_train,
+                           trControl = fitControl,
+                           verbose = FALSE)
+# Check out tuning parameters
+plot(boostedModel_boot, main = "Boosted trees, bootstrap resampling")
+# Evaluate test set performance
+boostedPred_boot <- predict(boostedModel_boot, newdata = predictors_test)
+boostedResults_boot <- postResample(pred = boostedPred_boot, obs = response_test)
+
+### Cubist ####################################################################
+cubistGrid <- expand.grid(committees = seq(5, 100, by = 5),
+                          neighbors = c(0, 1, 5, 9))
+set.seed(100)
+## Using bootstrapping resampling ##
+cubistModel_boot <- train(method = "cubist",
+                           tuneGrid = cubistGrid,
+                           x = predictors_train, y = response_train,
+                           trControl = fitControl,
+                           verbose = FALSE)
+# Check out tuning parameters
+plot(cubistModel_boot, main = "Cubist trees, bootstrap resampling")
+
+# Evaluate test set performance
+cubistPred_boot <- predict(cubistModel_boot, newdata = predictors_test)
+cubistResults_boot <- postResample(pred = cubistPred_boot, obs = response_test)
+
+#### Compare model fit results ################################################
+### Find model that has the best fit results ###
+# Create dataframe containing all the model fits
+modelFits <- t(data.frame(lmResults_boot,
+                          plsResults_boot, ridgeResults_boot, enetResults_boot, 
+                          nnetResults_boot, svmResults_boot, marsResults_boot, 
+                          knnResults_boot, streeResults_boot, #mtreeResults_boot, 
+                          btreeResults_boot, rforestResults_boot,
+                          boostedResults_boot, 
+                          cubistResults_boot))
+# Order by best RMSE
+modelFits <- data.frame(modelFits) %>%
+  mutate(model = rownames(modelFits)) %>%
+  arrange(RMSE) %>%
+  relocate(model)
+write.csv(modelFits, "a.csv")
+
+mod_bestfit <- rforestModel_boot
+
+# Get important predictors
+library(iml)
+# Put the data inside a predictor object
+predictor <- Predictor$new(mod_bestfit, 
+                           data = predictors_test, 
+                           y = response_test)
+imp <- FeatureImp$new(predictor, loss = "mse", compare = "difference", n.repetitions = 300)
+plot(imp)
+
+# Save model results
+write.csv(imp[["results"]], file = "data/predictiveModeling/DenitModeling_CAREER_2026-04-10.csv")
+
+# Save workspace
+save.image(file = "data/predictiveModeling/RWorkspace_DenitModeling_CAREER_2026-04-10.RData")
+
+# To load workspace
+load("data/predictiveModeling/RWorkspace_DenitModeling_CAREER_2026-04-10.RData")
+
+topModels %>%
+  filter(Rsquared == max(Rsquared)) %>%
+  arrange(desc(Overall))
+```
+
+```{r train_CAREER_ER}
+# If we want to predict ER, we need to remove the rows that 
+# don't have an ER estimate
+data_er <-
+  data_raw %>%
+  filter(!is.na(ER_daily_mean)) %>%
+  select(-c(TransectDepth_Avg_cm, GPP_daily_mean, K600_daily_mean))
+
+# Split the data into predictors and response
+response <- data_er$ER_daily_mean
+predictors <- select(data_er, -ER_daily_mean)
+
+# Check for highly correlated predictors and remove highly correlated 
+# predictors using a cutoff value of 85%
+corMatrix <- 
+  cor(predictors, 
+      method = "spearman", 
+      use = "pairwise.complete.obs")
+highCorr <- findCorrelation(corMatrix, cutoff = 0.85)
+message("Omitted highly correlated predictors above cutoff value of 0.85: ", paste(names(predictors[highCorr]), collapse = ", "))
+# NO2NO3 highcorr to DIN:SRP - Let's keep NO2NO3 as a predictor, and toss 
+# DIN:SRP instead (as NO2NO3 concentrations will be more informative to readers 
+# than DIN:SRP)
+highCorr[names(predictors[highCorr]) == "NO2NO3_ugL"] <- 
+  which(names(predictors) == "DIN_SRP")
+
+predictors <- predictors[-highCorr]
+str(predictors) # 34 observations, 22 variables
+
+# Visualize NAs - TRUE = NA value
+predictors %>%
+  ungroup() %>%
+  mutate(id = row_number()) %>%
+  gather(-id, key = "key", value = "val") %>%
+  mutate(isna = is.na(val)) %>%
+  ggplot(aes(y = key, x = id, fill = isna)) +
+  geom_raster() 
+
+# Summarise how many missing values per variable
+data.frame(variables = names(predictors),
+           naCount = colSums(is.na(predictors)),
+           naPerc = colSums(is.na(predictors)) / nrow(predictors) * 100) %>%
+  mutate(natotal = sum(naCount))
+
+# Center, scale, remove near-zero variables, and impute missing variables using
+# 5-nearest neighbors
+preproc <- preProcess(as.data.frame(predictors), 
+                      method = c("center", "scale", "knnImpute", "nzv"),
+                      k = 5, freqCut = 95/5)
+transfor <- predict(preproc, newdata = predictors)
+
+#### Split dataset ####
+set.seed(100) # Set seed for reproducability
+# Random split
+trainIndex <- createDataPartition(1:length(transfor$Latitude), p = 0.6, list = FALSE)
+predictors_train <- transfor[trainIndex,]
+predictors_test <- transfor[-trainIndex,]
+response_train <- response[trainIndex]
+response_test <- response[-trainIndex]
+
+### Linear regression ##########################################################
+set.seed(100)
+lmModel_boot <- train(method = "lm", x = predictors_train, y = response_train,
+                      trControl = fitControl)
+lmPred_boot <- predict(lmModel_boot, newdata = predictors_test)
+lmResults_boot <- postResample(pred = lmPred_boot, obs = response_test)
+
+### Partial least squares #####################################################
+set.seed(100)
+## Using bootstrapping resampling ##
+plsModel_boot <- train(method = "pls",
+                      tuneLength = 10,
+                      x = predictors_train, y = response_train,
+                      trControl = fitControl)
+# Check out tuning parameters
+plot(plsModel_boot, main = "PLS, bootstrap resampling")
+# Evaluate test set performance
+plsPred_boot <- predict(plsModel_boot, newdata = predictors_test)
+plsResults_boot <- postResample(pred = plsPred_boot, obs = response_test)
+
+### Ridge #####################################################################
+set.seed(100)
+## Using bootstrapping resampling ##
+ridgeModel_boot <- train(method = "ridge",
+                         tuneGrid = data.frame(.lambda = seq(0, 20, 
+                                                             length = 20)),
+                         x = predictors_train, y = response_train,
+                         trControl = fitControl)
+# Check out tuning parameters
+plot(ridgeModel_boot, main = "Ridge, bootstrap resampling")
+# Evaluate test set performance
+ridgePred_boot <- predict(ridgeModel_boot, newdata = predictors_test)
+ridgeResults_boot <- postResample(pred = ridgePred_boot, obs = response_test)
+
+### Elastic net/lasso #########################################################
+enetGrid <- expand.grid(.lambda = c(1E-6, 0.00001, 0.0001, 0.001, 0.1, 
+                                    0.5, 1, 2, 3), 
+                        .fraction = seq(0.05, 1, length = 20))
+set.seed(100)
+## Using bootstrapping resampling ##
+enetModel_boot <- train(method = "enet",
+                        tuneGrid = enetGrid,
+                        x = predictors_train, y = response_train,
+                        trControl = fitControl)
+# Check out tuning parameters
+plot(enetModel_boot, main = "Elastic Net, bootstrap resampling")
+# Evaluate test set performance
+enetPred_boot <- predict(enetModel_boot, newdata = predictors_test)
+enetResults_boot <- postResample(pred = enetPred_boot, obs = response_test)
+
+### Neural networks ###########################################################
+nnetGrid <- expand.grid(size = seq(from = 1, to = 28, by = 2),
+                        decay = seq(from = 0.1, to = 3, by = 0.2))
+set.seed(100)
+## Using bootstrapping resampling ##
+nnetModel_boot <- train(method = "nnet",
+                         tuneGrid = nnetGrid,
+                         x = predictors_train, y = response_train,
+                         trControl = fitControl)
+# Check out tuning parameters
+plot(nnetModel_boot, main = "Neural net, bootstrap resampling")
+# Evaluate test set performance
+nnetPred_boot <- predict(nnetModel_boot, newdata = predictors_test)
+nnetResults_boot <- postResample(pred = nnetPred_boot, obs = response_test)
+
+### Support vector machines ###################################################
+set.seed(100)
+## Using bootstrapping resampling ##
+svmModel_boot <- train(method = "svmRadial",
+                       tuneLength = 10,
+                       x = predictors_train, y = response_train,
+                       trControl = fitControl)
+# Check out tuning parameters
+plot(svmModel_boot, main = "Radial SVM, bootstrap resampling")
+# Evaluate test set performance
+svmPred_boot <- predict(svmModel_boot, newdata = predictors_test)
+svmResults_boot <- postResample(pred = svmPred_boot, obs = response_test)
+
+### MARS/FDA ##################################################################
+set.seed(100)
+## Using bootstrapping resampling ##
+marsModel_boot <- train(method = "earth",
+                       tuneGrid = expand.grid(.degree = 1:9, .nprune = 2:8),
+                       x = predictors_train, y = response_train,
+                       trControl = fitControl)
+marsModel_boot$results
+# Check out tuning parameters
+plot(marsModel_boot, main = "MARS, bootstrap resampling")
+# Evaluate test set performance
+marsPred_boot <- predict(marsModel_boot, newdata = predictors_test)
+marsResults_boot <- postResample(pred = marsPred_boot, obs = response_test)
+
+### K-nearest neighbors #######################################################
+set.seed(100)
+## Using bootstrapping resampling ##
+knnModel_boot <- train(method = "knn",
+                       tuneGrid = data.frame(.k = 1:20),
+                       x = predictors_train, y = response_train,
+                       trControl = fitControl)
+# Check out tuning parameters
+plot(knnModel_boot, main = "KNN, bootstrap resampling")
+# Evaluate test set performance
+knnPred_boot <- predict(knnModel_boot, newdata = predictors_test)
+knnResults_boot <- postResample(pred = knnPred_boot, obs = response_test)
+
+### Single trees ##############################################################
+set.seed(100)
+## Using bootstrapping resampling ##
+streeModel_boot <- train(method = "rpart2",
+                       tuneGrid = data.frame(.maxdepth = 3),
+                       x = predictors_train, y = response_train,
+                       trControl = fitControl)
+# Check out tuning parameters
+plot(streeModel_boot, main = "Radial SVM, bootstrap resampling")
+# Evaluate test set performance
+streePred_boot <- predict(streeModel_boot, newdata = predictors_test)
+streeResults_boot <- postResample(pred = streePred_boot, obs = response_test)
+
+### Model trees/rules #########################################################
+#set.seed(100)
+## Using bootstrapping resampling ##
+#mtreeModel_boot <- train(method = "M5",
+#                         x = predictors_train, y = response_train,
+#                         trControl = fitControl)
+# Check out tuning parameters
+#plot(mtreeModel_boot, main = "Model SVM, bootstrap resampling")
+# Evaluate test set performance
+#mtreePred_boot <- predict(mtreeModel_boot, newdata = predictors_test)
+#mtreeResults_boot <- postResample(pred = mtreePred_boot, obs = response_test)
+
+### Bagged trees ##############################################################
+set.seed(100)
+## Using bootstrapping resampling ##
+btreeModel_boot <- train(method = "treebag",
+                         x = predictors_train, y = response_train,
+                         trControl = fitControl)
+# Evaluate test set performance
+btreePred_boot <- predict(btreeModel_boot, newdata = predictors_test)
+btreeResults_boot <- postResample(pred = btreePred_boot, obs = response_test)
+
+### Random forest #############################################################
+set.seed(100)
+## Using bootstrapping resampling ##
+rforestModel_boot <- train(method = "rf",
+                           tuneLength = 25,
+                           x = predictors_train, y = response_train,
+                           trControl = fitControl)
+# Check out tuning parameters
+plot(rforestModel_boot, main = "Random forest, bootstrap resampling")
+# Evaluate test set performance
+rforestPred_boot <- predict(rforestModel_boot, newdata = predictors_test)
+rforestResults_boot <- postResample(pred = rforestPred_boot,
+                                    obs = response_test)
+
+### Boosted trees #############################################################
+bmGrid <- expand.grid(interaction.depth = seq(1, 7, by = 2),
+                      n.trees = seq(50, 1000, by = 50),
+                      shrinkage = c(0.01, 0.1),
+                      n.minobsinnode = 2)
+set.seed(100)
+## Using bootstrapping resampling ##
+boostedModel_boot <- train(method = "gbm", #tunelength = 1,
+                           tuneGrid = bmGrid,
+                           x = predictors_train, y = response_train,
+                           trControl = fitControl,
+                           verbose = TRUE)
+# Check out tuning parameters
+plot(boostedModel_boot, main = "Boosted trees, bootstrap resampling")
+# Evaluate test set performance
+boostedPred_boot <- predict(boostedModel_boot, newdata = predictors_test)
+boostedResults_boot <- postResample(pred = boostedPred_boot, 
+                                    obs = response_test)
+
+### Cubist ####################################################################
+cubistGrid <- expand.grid(committees = seq(5, 100, by = 5),
+                          neighbors = c(0, 1, 5, 9))
+set.seed(100)
+## Using bootstrapping resampling ##
+cubistModel_boot <- train(method = "cubist",
+                           tuneGrid = cubistGrid,
+                           x = predictors_train, y = response_train,
+                           trControl = fitControl,
+                           verbose = FALSE)
+# Check out tuning parameters
+plot(cubistModel_boot, main = "Cubist trees, bootstrap resampling")
+# Evaluate test set performance
+cubistPred_boot <- predict(cubistModel_boot, newdata = predictors_test)
+cubistResults_boot <- postResample(pred = cubistPred_boot, obs = response_test)
+
+#### Compare model fit results ################################################
+### Find model that has the best fit results ###
+# Create dataframe containing all the model fits
+modelFits <- t(data.frame(lmResults_boot, 
+                          plsResults_boot, 
+                          ridgeResults_boot, 
+                          enetResults_boot, 
+                           nnetResults_boot, 
+                          svmResults_boot, 
+                          marsResults_boot, 
+                           knnResults_boot, 
+                          streeResults_boot, 
+                          #mtreeResults_boot, 
+                           btreeResults_boot, 
+                          rforestResults_boot, 
+                          boostedResults_boot, 
+                           cubistResults_boot))
+# Order by best RMSE
+modelFits <- data.frame(modelFits) %>%
+  mutate(model = rownames(modelFits)) %>%
+  arrange(RMSE) %>%
+  relocate(model)
+write_csv(modelFits, "a.csv")
+
+mod_bestfit <- rforestModel_boot
+
+# Get important predictors
+library(iml)
+# Put the data inside a predictor object
+predictor <- Predictor$new(mod_bestfit, 
+                           data = predictors_test, 
+                           y = response_test)
+imp <- FeatureImp$new(predictor, loss = "mse", compare = "difference", 
+                      n.repetitions = 300)
+plot(imp)
+
+# Save model results
+write.csv(imp[["results"]], 
+          file = "data/predictiveModeling/RespirationModeling_CAREER_2026-04-10.csv")
+
+
+# Save workspace
+save.image(file = "data/predictiveModeling/RWorkspace_RespirationModeling_CAREER_2026-04-10.RData")
+# To load workspace
+load("data/predictiveModeling/RWorkspace_RespirationModeling_CAREER_2026-04-10.RData")
+
+# Plot variable importance of top 5 models
+#b <- 
+  ggplot(data = NULL) +
+  geom_hline(data = importanceSummary, aes(yintercept = predictor),
+             color = "lightgrey", linetype = 3) +
+  geom_errorbar(data = importanceSummary, 
+                aes(y = predictor, xmin = mean_importance-sd_importance,
+                    xmax = mean_importance+sd_importance), color = "grey") +
+  geom_point(data = importanceSummary, aes(y = predictor, x = mean_importance), 
+             color = "grey", size = 5, shape = 21, fill = "white") +
+  geom_point(data = top, aes(y = predictor, x = Overall), size = 3.5, shape = 21) +
+  labs(x = "Relative variable importance", y = "Variable") +
+  theme_classic() +
+  theme(axis.text = element_text(color = "black", size = 10), 
+        panel.background = element_rect(color = "black"), 
+        legend.background = element_rect(color = "black"))
+
+ggsave(b, file = "plots/ModelImportance_Respiration_CAREER.png", width = 5, 
+       height = 5, units = "in", dpi = 300)
+
+topModels %>%
+  filter(Rsquared == max(Rsquared)) %>%
+  arrange(desc(Overall))
+```

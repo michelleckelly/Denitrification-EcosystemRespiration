@@ -1,0 +1,2625 @@
+---
+title: "Model metabolism in NEON streams"
+author: "Michelle Catherine Kelly"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Setup
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(gridExtra)
+library(fluxr)
+library(neonfluxr)
+library(streamMetabolizer)
+#devtools::install_github("DOI-USGS/geoknife")
+#devtools::install_github("streampulse/StreamPULSE")
+library(StreamPULSE)
+library(rstan)
+
+# Set working directory to source file location
+
+# Colorblind-friendly palette developed by IBM, 2, 4 and 5 color version
+ibm2 <- c("#000000", "#648FFF")
+ibm3 <- c("#648FFF", "#DC267F", "#FFB000")
+ibm4 <- c("#785EF0", "#DC267F", "#FE6100", "#FFB000")
+ibm5 <- c("#648FFF", "#785EF0", "#DC267F", "#FE6100", "#FFB000")
+```
+
+```{r Helper functions block}
+## Visualize raw NEON data ####
+# This function will create time series plots of parameter data used in metabolism
+# modeling, allowing you to evaluate if there's any weird data points that remain
+# after the initial data cleaning step
+plotParams <- function(cleanData, k600Measured){
+  # Plot datetime vs O2
+    plotD <- ggplot(data = cleanData, aes(x = DateTime_UTC, y = DO_mgL, 
+                                          color = horizontalPosition)) +
+      # Add measurements
+      geom_line(size = 0.4, alpha = 0.8) +
+      # Theme adjustments
+      scale_color_manual(name = "Location", values = ibm2) +
+      scale_x_datetime(date_breaks = "month", date_labels = "%b") +
+      theme_classic() +
+      labs(tag = "d") +
+      theme(axis.text = element_text(color = "black"),
+            panel.background = element_rect(color = "black"),
+            legend.position = c(0.09, 0.2),
+            legend.title = element_text(size = 8),
+            legend.background = element_rect(color = "black"), 
+            legend.key.size = unit(0.25, 'cm'))
+    # Plot datetime vs DO sat
+    plotE <- ggplot(data = cleanData, aes(x = DateTime_UTC, y = DOsat_mgL, 
+                                          color = horizontalPosition)) +
+      # Add measurements
+      geom_line(size = 0.4, alpha = 0.8) +
+      # Theme adjustments
+      scale_color_manual(values = ibm2) +
+      scale_x_datetime(date_breaks = "month", date_labels = "%b") +
+      theme_classic() +
+      labs(tag = "e") +
+      theme(axis.text = element_text(color = "black"),
+            panel.background = element_rect(color = "black"),
+            legend.position = "none")
+    # Plot datetime vs O2 sat
+    plotF <- ggplot(data = cleanData, aes(x = DateTime_UTC, y = DOsat_pct, 
+                                          color = horizontalPosition)) +
+      # Add measurements
+      geom_line(size = 0.4, alpha = 0.8) +
+      # Theme adjustments
+      scale_color_manual(values = ibm2) +
+      scale_x_datetime(date_breaks = "month", date_labels = "%b") +
+      theme_classic() +
+      labs(tag = "f") +
+      theme(axis.text = element_text(color = "black"),
+            panel.background = element_rect(color = "black"),
+            legend.position = "none")
+    
+    plotH <- ggplot(data = cleanData, aes(x = DateTime_UTC, y = travelTime_s)) +
+      # Add measurements
+      #geom_ribbon(aes(ymin = travelTime_s-travelTime_sd, ymax = travelTime_s+travelTime_sd), 
+       #           fill = "grey", alpha = 0.5) +
+      geom_point(aes(color = horizontalPosition),
+                 size = 0.4, alpha = 0.8, shape = 21, fill = "white") +
+      # Theme adjustments
+      scale_color_manual(name = "Sampling location", values = ibm2) +
+      scale_x_datetime(date_breaks = "month", date_labels = "%b") +
+      theme_classic() +
+      labs(tag = "h") +
+      theme(axis.text = element_text(color = "black"),
+            panel.background = element_rect(color = "black"),
+            legend.position = "none")
+    # Plot datetime vs water temp
+    plotI <- ggplot(data = cleanData, aes(x = DateTime_UTC, y = WaterTemp_C, 
+                                          color = horizontalPosition)) +
+      # Add measurements
+      geom_point(size = 0.4, alpha = 0.8, shape = 21, fill = "white") +
+      # Theme adjustments
+      #ylab(expression("Discharge ("*m^3~s^{-1}*")")) +
+      scale_color_manual(name = "Sampling location", values = ibm2) +
+      scale_x_datetime(date_breaks = "month", date_labels = "%b") +
+      theme_classic() +
+      labs(tag = "i") +
+      theme(axis.text = element_text(color = "black"),
+            panel.background = element_rect(color = "black"),
+            legend.position = "none")
+    # Plot datetime vs depth
+    plotJ <- ggplot(data = cleanData, aes(x = DateTime_UTC, y = Depth_m, 
+                                          color = horizontalPosition)) +
+      # Add measurements
+      geom_line(size = 0.4, alpha = 0.8) +
+      # Theme adjustments
+      scale_color_manual(values = ibm2) +
+      scale_x_datetime(date_breaks = "month", date_labels = "%b") +
+      theme_classic() +
+      labs(tag = "j") +
+      theme(axis.text = element_text(color = "black"),
+            panel.background = element_rect(color = "black"),
+            legend.position = "none")
+  # Plot datetime vs discharge
+  plotK <- ggplot(data = cleanData, aes(x = DateTime_UTC, y = Discharge_m3s, 
+                                        color = horizontalPosition)) +
+    # Add measurements
+    geom_line(size = 0.4, alpha = 0.8) +
+    # Theme adjustments
+    scale_color_manual(values = ibm2) +
+    scale_x_datetime(date_breaks = "month", date_labels = "%b") +
+    theme_classic() +
+    labs(tag = "k") +
+    theme(axis.text = element_text(color = "black"),
+          panel.background = element_rect(color = "black"),
+          legend.position = "none")
+  # Plot datetime vs light
+  plotL <- ggplot(data = cleanData, aes(x = DateTime_UTC, y = Light_PAR, 
+                                        color = horizontalPosition)) +
+    # Add measurements
+    geom_line(size = 0.4, alpha = 0.8) +
+    # Theme adjustments
+    scale_color_manual(values = ibm2) +
+    scale_x_datetime(date_breaks = "month", date_labels = "%b") +
+    theme_classic() +
+    labs(tag = "l") +
+    theme(axis.text = element_text(color = "black"),
+          panel.background = element_rect(color = "black"),
+          legend.position = "none")
+    
+    # Set up title for plots
+  plotTitle <- paste0(unique(cleanData$siteID), ", ", 
+                      month(cleanData$DateTime_UTC, label = TRUE, abbr = TRUE)[1], 
+                      " ", year(cleanData$DateTime_UTC)[1], " to ", 
+                      last(month(cleanData$DateTime_UTC, label = TRUE, abbr = TRUE)), 
+                      " ", last(year(cleanData$DateTime_UTC)), ", cleaned data")
+  if(length(k600Measured) == 1){
+    # Skip plotting k600 information
+    grob <- grid.arrange(plotD, plotE, plotF,
+                         plotH, plotI, plotJ, plotK, plotL, ncol = 3,
+                         top = textGrob(plotTitle))
+  } else{
+    # Plot discharge vs k600
+    plotA <- ggplot(data = k600Measured, aes(x = meanQ_cms, y = k600.clean)) +
+      geom_smooth(method = "lm", color = "black") +
+      ggpubr::stat_regline_equation(label.y = max(k600Measured$k600.clean)*0.9) +
+      ggpubr::stat_cor(label.y = max(k600Measured$k600.clean)*0.8) +
+      facet_wrap(vars(siteID)) +
+      geom_point(shape = 21, fill = "white", size = 2) +
+      # Theme adjustments
+      xlab(expression("Discharge ("*m^3~s^{-1}*")")) +
+      labs(tag = "a", title = "Data from NEON tracer measurements") +
+      theme_classic() +
+      theme(axis.text = element_text(color = "black"),
+            panel.background = element_rect(color = "black"),
+            legend.position = "bottom")
+    plotB <- ggplot(data = k600Measured, aes(x = meanQ_cms, y = peakMaxTravelTime)) +
+      geom_smooth(method = "lm", color = "black") +
+      ggpubr::stat_regline_equation(label.x = max(k600Measured$meanQ_cms)*0.5,
+                                    label.y = max(k600Measured$peakMaxTravelTime)*0.9) +
+      ggpubr::stat_cor(label.x = max(k600Measured$meanQ_cms)*0.5,
+                       label.y = max(k600Measured$peakMaxTravelTime)*0.8) +
+      facet_wrap(vars(siteID)) +
+      geom_point(shape = 21, fill = "white", size = 2) +
+      # Add log scale
+      # Theme adjustments
+      xlab(expression("Discharge ("*m^3~s^{-1}*")")) +
+      labs(tag = "b", title = "Data from NEON tracer measurements") +
+      theme_classic() +
+      theme(axis.text = element_text(color = "black"),
+            panel.background = element_rect(color = "black"),
+            legend.position = "bottom")
+    plotC <- ggplot(data = k600Measured, aes(x = log10(meanQ_cms), y = peakMaxTravelTime)) +
+      geom_smooth(method = "lm", color = "black") +
+      ggpubr::stat_regline_equation(label.x = min(log10(k600Measured$meanQ_cms))*0.5,
+                                    label.y = max(k600Measured$peakMaxTravelTime)*0.9) +
+      ggpubr::stat_cor(label.x = min(log10(k600Measured$meanQ_cms))*0.5,
+                       label.y = max(k600Measured$peakMaxTravelTime)*0.8) +
+      facet_wrap(vars(siteID)) +
+      geom_point(shape = 21, fill = "white", size = 2) +
+      # Theme adjustments
+      xlab(expression("Log(Discharge ("*m^3~s^{-1}*") + 1)")) +
+      labs(tag = "c", title = "Data from NEON tracer measurements") +
+      theme_classic() +
+      theme(axis.text = element_text(color = "black"),
+            panel.background = element_rect(color = "black"),
+            legend.position = "bottom")
+    # Plot datetime vs k600
+    plotG <- ggplot(data = cleanData, aes(x = DateTime_UTC, y = k600)) +
+      # Add measurements
+      geom_ribbon(aes(ymin = k600-k600, ymax = k600+k600), 
+                  fill = "grey", alpha = 0.5) +
+      geom_point(aes(color = horizontalPosition),
+                 size = 0.4, alpha = 0.8, shape = 21, fill = "white") +
+      # Theme adjustments
+      scale_color_manual(name = "Sampling location", values = ibm2) +
+      scale_x_datetime(date_breaks = "month", date_labels = "%b") +
+      theme_classic() +
+      labs(tag = "g") +
+      theme(axis.text = element_text(color = "black"),
+            panel.background = element_rect(color = "black"),
+            legend.position = "none")
+    
+    # Arrange plots and output to user
+    grob <- grid.arrange(plotA, plotB, plotC, plotD, plotE, plotF, plotG, 
+                         plotH, plotI, plotJ, plotK, plotL, ncol = 3,
+                         top = textGrob(plotTitle))
+  } # close else
+}
+
+## Visualize NEON metabolism modeling results ####
+plotModlTS <- function(results, title){
+  # ER vs K
+  plotA <- ggplot(data = results$results, aes(x = ER, y = k)) +
+    # ER vs k
+    geom_point(shape = 21, fill = "white") +
+    # Theme adjustments
+    scale_color_manual(values = ibm2) +
+    scale_fill_manual(values = ibm2) +
+    #scale_x_date(date_breaks = "month", date_labels = "%b") +
+    theme_classic() +
+    #xlab("Date") + ylab("GPP or ER (mg O2 m-2 d-1)") +
+    labs(tag = "a") +
+    theme(axis.text = element_text(color = "black"),
+          panel.background = element_rect(color = "black"))
+  # ER vs GPP
+  plotB <- ggplot(data = results$results, aes(x = GPP, y = ER)) +
+    # ER vs GPP
+    geom_point(shape = 21, fill = "white") +
+    # Theme adjustments
+    scale_color_manual(values = ibm2) +
+    scale_fill_manual(values = ibm2) +
+    #scale_x_date(date_breaks = "month", date_labels = "%b") +
+    theme_classic() +
+    #xlab("Date") + ylab("GPP or ER (mg O2 m-2 d-1)") +
+    labs(tag = "b") +
+    theme(axis.text = element_text(color = "black"),
+          panel.background = element_rect(color = "black"))
+  # K through time
+  plotC <- ggplot(data = results$results, aes(x = date)) +
+    geom_point(aes(y = k), shape = 21, fill = "white") +
+    # Theme adjustments
+    scale_x_date(date_breaks = "month", date_labels = "%b") +
+    theme_classic() +
+    xlab("Date") + ylab("k (d-1)") +
+    labs(tag = "c") +
+    theme(axis.text = element_text(color = "black"),
+          panel.background =element_rect(color = "black"))
+  # Compile a visual showing modeled results, original O2
+  plotD <- ggplot(data = results$modeledO2) +
+    geom_line(aes(x = timeup, y = oxyup, color = "S1")) +
+    geom_line(aes(x = timedown, y = oxydown, color = "S2")) +
+    geom_line(aes(x = timedown, y = modeledO2, color = "Modeled")) +
+    # Theme adjustments
+    scale_color_manual(values = ibm4) +
+    scale_x_datetime(date_breaks = "month", date_labels = "%b") +
+    theme_classic() +
+    xlab("Date and time") + ylab("Oxygen (mg/L)") +
+    labs(tag = "d") +
+    theme(axis.text = element_text(color = "black"),
+          panel.background = element_rect(color = "black"),
+          legend.position = "right", 
+          legend.title = element_blank(),
+          legend.background = element_rect(color = "black"))
+  plotE <- ggplot(data = results$results, aes(x = date)) +
+    # GPP
+    geom_errorbar(aes(ymin = GPP.lower, ymax =  GPP.upper, color = "GPP"), 
+                  alpha = 0.5, width = 0.2) +
+    geom_point(aes(y = GPP, color = "GPP"), shape = 21, fill = "white") +
+    geom_smooth(aes(y = GPP, color = "GPP"), span = 0.1) +
+    # ER
+    geom_errorbar(aes(ymin =  ER.lower, ymax = ER.upper, color = "ER"), 
+                  alpha = 0.5, width = 0.2) +
+    geom_point(aes(y = ER, color = "ER"), shape = 21, fill = "white") +
+    geom_smooth(aes(y = ER, color = "ER"), span = 0.1) +
+    geom_hline(yintercept = 0) +
+    # Theme adjustments
+    scale_color_manual(values = ibm4) +
+    scale_fill_manual(values = ibm4) +
+    scale_x_date(date_breaks = "month", date_labels = "%b") +
+    theme_classic() +
+    xlab("Date") + ylab("GPP or ER (mg O2 m-2 d-1)") +
+    labs(tag = "e") +
+    theme(axis.text = element_text(color = "black"),
+          panel.background =element_rect(color = "black"),
+          legend.position = "right",
+          axis.title.y = element_text(size = 8),
+          legend.title = element_blank(),
+          legend.background = element_rect(color = "black"))
+  # Cleaned metabolism modeling results
+  plotF <- ggplot(data = results$cleaned, aes(x = date)) +
+    # GPP
+    geom_errorbar(aes(ymin = GPP_mean-GPP_sd, ymax =  GPP_mean+GPP_sd, color = "GPP"), 
+                  alpha = 0.5, width = 0.2) +
+    geom_point(aes(y = GPP_mean, color = "GPP"), shape = 21, fill = "white") +
+    geom_smooth(aes(y = GPP_mean, color = "GPP"), span = 0.1) +
+    # ER
+    geom_errorbar(aes(ymin =  ER_mean-ER_sd, ymax = ER_mean+ER_sd, color = "ER"), 
+                  alpha = 0.5, width = 0.2) +
+    geom_point(aes(y = ER_mean, color = "ER"), shape = 21, fill = "white") +
+    geom_smooth(aes(y = ER_mean, color = "ER"), span = 0.1) +
+    geom_hline(yintercept = 0) +
+    # Theme adjustments
+    scale_color_manual(values = ibm4) +
+    scale_fill_manual(values = ibm4) +
+    scale_x_date(date_breaks = "month", date_labels = "%b") +
+    theme_classic() +
+    xlab("Date") + ylab("GPP or ER (mg O2 m-2 d-1)") +
+    labs(tag = "f") +
+    theme(axis.text = element_text(color = "black"),
+          axis.title.y = element_text(size = 8),
+          panel.background =element_rect(color = "black"),
+          legend.position = "right",
+          legend.title = element_blank(),
+          legend.background = element_rect(color = "black"))
+  
+  lay <- rbind(c(1,2,3),
+               c(4,4,4),
+               c(5,5,5),
+               c(6,6,6))
+  # Arrange plots and output to user
+  grob <- grid.arrange(plotA, plotB, plotC, plotD, plotE, plotF,
+                       layout_matrix = lay,
+                       top = title)
+}
+
+# Post-process two station results
+postProcTwo <- function(results){
+  # Create new nested df for cleaned results
+  results$cleaned <- results$results
+  
+  # Apply standard metabolism model cleaning methods 
+  # (from table 6 in Appling et al 2018, doi: 10.1038/sdata.2018.292)
+  results$cleaned <- 
+    results$cleaned %>%
+    mutate( # Add informative warnings
+      warnings = replace(warnings, GPP < 0 & ER > 0, "Predicted GPP < 0 & ER > 0"),
+      warnings = replace(warnings, GPP < 0, "Predicted GPP < 0"),
+      warnings = replace(warnings, ER > 0, "Predicted GPP < 0"),
+      warnings = replace(warnings, is.na(GPP.lower), "NaN for metabolism SEs"),
+      warnings = replace(warnings, GPP > 25, "GPP impossibly high (>25)"),
+      warnings = replace(warnings, abs(ER) > 25, "|ER| impossibly low (>25)"),
+      # Remove datapoints when predicted GPP < 0
+      GPP = replace(GPP, GPP < 0, NA),
+      # Remove datapoints when predicted ER > 0
+      ER = replace(ER, ER > 0, NA),
+      # Remove datapoints when GPP, ER, impossibly high
+      ER = ifelse(abs(ER) > 25, NA, ER),
+      GPP = ifelse(GPP > 25, NA, GPP),
+      # NaN in metabolism SE indicates modeling unsuccessful
+      GPP = replace(GPP, is.nan(GPP.lower), NA),
+      ER = replace(ER, is.nan(ER.lower), NA),
+      # Apply any removals of points to both GPP and ER metrics
+      GPP = replace(GPP, is.na(ER), NA),
+      ER = replace(ER, is.na(GPP), NA),
+      GPP.lower = replace(GPP.lower, is.na(GPP) | is.na(ER), NA),
+      GPP.upper = replace(GPP.upper, is.na(GPP) | is.na(ER), NA),
+      ER.lower = replace(ER.lower, is.na(GPP) | is.na(ER), NA),
+      ER.upper = replace(ER.upper, is.na(GPP) | is.na(ER), NA)) %>%
+    rename(GPP_mean = GPP, ER_mean = ER) %>%
+    mutate(GPP_sd = abs(GPP.upper) - abs(GPP_mean), 
+           ER_sd = abs(ER.lower) - abs(ER_mean[17])) %>%
+    select(-c(GPP.lower, GPP.upper, ER.lower, ER.upper))
+  
+  # Ouput dataframe to user
+  return(results)
+}
+
+postProcSingle <- function(results){
+  results$warnings <- NA # Intitalize warnings column
+  
+  # Apply standard metabolism model cleaning methods 
+  # (from table 6 in Appling et al 2018, doi: 10.1038/sdata.2018.292)
+  cleaned <- 
+    results %>%
+    select(date, GPP_mean, GPP_sd, GPP_se_mean, GPP_2.5pct, GPP_50pct,
+           GPP_97.5pct, ER_mean, ER_sd, ER_se_mean, ER_2.5pct, ER_50pct,
+           ER_97.5pct, K600_daily_mean, K600_daily_sd, K600_daily_se_mean, 
+           K600_daily_2.5pct, K600_daily_50pct, K600_daily_97.5pct, K600_daily_Rhat,
+           warnings) %>%
+    # Add informative warnings
+    mutate(warnings = replace(warnings, GPP_mean < 0 & ER_mean > 0, "Predicted GPP < 0 & ER > 0"),
+        warnings = replace(warnings, GPP_mean < 0, "Predicted GPP < 0"),
+        warnings = replace(warnings, ER_mean > 0, "Predicted GPP < 0"),
+        warnings = replace(warnings, is.na(GPP_sd), "NaN for metabolism SDs"),
+        warnings = replace(warnings, GPP_mean > 25, "GPP impossibly high (>25)"),
+        warnings = replace(warnings, abs(ER_mean) > 25, "|ER| impossibly low (>25)"),
+        # NA ER if greater than 0
+        ER_mean = ifelse(ER_mean > 0, NA, ER_mean),
+        # NA GPP if less than 0
+        GPP_mean = ifelse(GPP_mean < 0, NA, GPP_mean),
+        # NA GPP and ER if impossibly high
+        ER_mean = ifelse(abs(ER_mean) > 25, NA, ER_mean),
+        GPP_mean = ifelse(GPP_mean > 25, NA, GPP_mean)) %>%
+    mutate_if(is.numeric, funs( ifelse(is.na(GPP_mean)|is.na(ER_mean), NA, .)))
+  
+  # Create nested list for output
+  output <- list(cleaned = cleaned, results = results)
+  
+  # Ouput dataframe to user
+  return(output)
+}
+
+### Visualize single-station results ###
+plotModl <- function(results, title){
+  # ER vs K
+  plotA <- ggplot(data = results$cleaned, aes(x = ER_mean, y = K600_daily_mean)) +
+    # ER vs k
+    geom_point(shape = 21, fill = "white") +
+    # Add R2
+    ggpubr::stat_cor(aes(label=..rr.label..)) +
+    # Theme adjustments
+    scale_color_manual(values = ibm2) +
+    scale_fill_manual(values = ibm2) +
+    theme_classic() +
+    labs(tag = "a") +
+    theme(axis.text = element_text(color = "black"),
+          panel.background = element_rect(color = "black"))
+  # ER vs GPP
+  plotB <- ggplot(data = results$cleaned, aes(x = GPP_mean, y = ER_mean)) +
+    # ER vs GPP
+    geom_point(shape = 21, fill = "white") +
+    # Add R2
+    ggpubr::stat_cor(aes(label=..rr.label..)) +
+    # Theme adjustments
+    scale_color_manual(values = ibm2) +
+    scale_fill_manual(values = ibm2) +
+    theme_classic() +
+    labs(tag = "b") +
+    theme(axis.text = element_text(color = "black"),
+          panel.background = element_rect(color = "black"))
+  # K through time
+  plotC <- ggplot(data = results$cleaned, aes(x = date, y = K600_daily_mean)) +
+    geom_line() +
+    geom_point(shape = 21, fill = "white") +
+    # Theme adjustments
+    scale_x_date(date_breaks = "month", date_labels = "%b") +
+    theme_classic() +
+    xlab("Date") + ylab("k (d-1)") +
+    labs(tag = "c") +
+    theme(axis.text = element_text(color = "black"),
+          panel.background =element_rect(color = "black"))
+  # Compile a visual showing modeled results, original O2
+  #plotD <- ggplot(data = results$rawResults$modeledO2) +
+   # geom_line(aes(x = timeup, y = oxyup, color = "S1")) +
+    #geom_line(aes(x = timedown, y = oxydown, color = "S2")) +
+    #geom_line(aes(x = timedown, y = modeledO2, color = "Modeled")) +
+    # Theme adjustments
+    #scale_color_manual(values = ibm4) +
+    #scale_x_datetime(date_breaks = "month", date_labels = "%b") +
+    #theme_classic() +
+    #xlab("Date and time") + ylab("Oxygen (mg/L)") +
+    #labs(tag = "d") +
+    #theme(axis.text = element_text(color = "black"),
+     #     panel.background = element_rect(color = "black"),
+      #    legend.position = "right", 
+       #   legend.title = element_blank(),
+        #  legend.background = element_rect(color = "black"))
+  plotE <- ggplot(data = results$results, aes(x = date)) +
+    ## GPP ##
+    geom_errorbar(aes(ymin = GPP_mean-GPP_sd, ymax = GPP_mean+GPP_sd, color = "GPP"), 
+                  alpha = 0.5, width = 0.2) +
+    geom_point(aes(y = GPP_mean, color = "GPP"), shape = 21, fill = "white") +
+    # Add line for loess
+    geom_smooth(aes(y = GPP_mean, color = "GPP"), span = 0.1) +
+    ## ER ##
+    geom_errorbar(aes(ymin = ER_mean-ER_sd, ymax = ER_mean+ER_sd, color = "ER"), 
+                  alpha = 0.5, width = 0.2) +
+    geom_point(aes(y = ER_mean, color = "ER"), shape = 21, fill = "white") +
+    # Add loess smoothing
+    geom_smooth(aes(y = ER_mean, color = "ER"), span = 0.1) +
+    geom_hline(yintercept = 0) +
+    # Theme adjustments
+    scale_color_manual(values = ibm4) +
+    scale_fill_manual(values = ibm4) +
+    scale_x_date(date_breaks = "month", date_labels = "%b") +
+    theme_classic() +
+    xlab("Date") + ylab("GPP or ER (mg O2 m-2 d-1)") +
+    labs(tag = "e") +
+    theme(axis.text = element_text(color = "black"),
+          panel.background =element_rect(color = "black"),
+          legend.position = "right",
+          axis.title.y = element_text(size = 8),
+          legend.title = element_blank(),
+          legend.background = element_rect(color = "black"))
+  # Cleaned metabolism modeling results
+  plotF <- ggplot(data = results$cleaned, aes(x = date)) +
+    ## GPP ##
+    geom_errorbar(aes(ymin = GPP_mean-GPP_sd, ymax = GPP_mean+GPP_sd, color = "GPP"), 
+                  alpha = 0.5, width = 0.2) +
+    geom_point(aes(y = GPP_mean, color = "GPP"), shape = 21, fill = "white") +
+    ## ER ##
+    geom_errorbar(aes(ymin = ER_mean-ER_sd, ymax = ER_mean+ER_sd, color = "ER"), 
+                  alpha = 0.5, width = 0.2) +
+    geom_point(aes(y = ER_mean, color = "ER"), shape = 21, fill = "white") +
+    geom_hline(yintercept = 0) +
+    # Theme adjustments
+    scale_color_manual(values = ibm4) +
+    scale_fill_manual(values = ibm4) +
+    scale_x_date(date_breaks = "month", date_labels = "%b") +
+    theme_classic() +
+    xlab("Date") + ylab("GPP or ER (mg O2 m-2 d-1)") +
+    labs(tag = "f") +
+    theme(axis.text = element_text(color = "black"),
+          panel.background =element_rect(color = "black"),
+          legend.position = "right",
+          axis.title.y = element_text(size = 8),
+          legend.title = element_blank(),
+          legend.background = element_rect(color = "black"))
+  
+  lay <- rbind(c(1,2,3),
+               c(4,4,4),
+               c(5,5,5)#,
+               #c(6,6,6)
+               )
+  # Arrange plots and output to user
+  grob <- grid.arrange(plotA, plotB, plotC, #plotD, 
+                       plotE, plotF, layout_matrix = lay, top = title)
+}
+
+## Function to send me an email when modeling is finished ######
+emailMe <- function(siteName){
+  # Format text of email
+  body_text <- 
+    md(glue::glue(
+    "Hello Michelle,
+    
+    Two-station metabolism modeling for site {siteName} has concluded.
+    
+    Results have been locally saved to file path: {paste0(modName, '.rds')}
+    
+    Total computation time for {modelType} model was {round(as.numeric(computationEnd - computationStart, units = 'hours'), digits = 4)} hours.
+    
+    Lots of love,
+    Computer"
+    ))
+  
+  # Compose mail message
+  mail <- compose_email(body = body_text,
+                        footer = glue::glue("Sent at: {Sys.time()}"))
+  # Send mail
+  mail %>%
+    smtp_send(from = "michellecatherinekelly@gmail.com", 
+              to = "michellecatherinekelly@gmail.com",
+              subject = paste0(siteName, " Modeling Has Concluded"),
+              credentials = creds_key(id = "gmail"))
+}
+
+
+
+
+```
+
+```{r Load site information}
+# Load all CAREER site information
+CAREER_sites <- read_csv(file = "data/CAREER_SiteAttributes.csv")
+CAREER_sites$date <- mdy(CAREER_sites$date)
+
+# Filter to just NEON sites
+NEON_sites <- CAREER_sites %>% filter(Organization == "NEON")
+
+# Get vector of site ID codes
+siteList <- NEON_sites$NEON_SiteID
+```
+
+```{r pull NEON data}
+# Choose site wanted
+i <- 6
+sitecode <- siteList[i]
+startdate <- paste0(year(NEON_sites$date), "-01")[i]
+enddate <- paste0(year(NEON_sites$date), "-12")[i]
+
+# Pull data from API
+data <- request_NEON(sitecode, startdate, enddate, expanded = TRUE)
+
+# Save to compressed RDS file
+fileName <- paste0("data/metabolism/parameters/raw/MetabolismParameters_Raw_", 
+                   sitecode, "_", startdate, "_", enddate, ".rds")
+write_rds(data, compress = "gz", file = fileName)
+```
+
+```{r plot raw data}
+# Helper functions for plotting raw parameter data
+plot_params <- function(dataset, yvar){
+  if("solar.time" %in% colnames(dataset)){
+    xvar <- "solar.time"
+  } else{
+    xvar <- "datetime_UTC"
+  }
+  
+  ggplot(data = dataset, 
+         aes(x = .data[[xvar]], y = .data[[yvar]])) +
+  geom_line(aes(color = location), alpha = 0.9) +
+  scale_x_datetime(date_breaks = "8 hours", date_labels = "%b %e\n%H:%M") +
+  theme_minimal() +
+  theme(axis.text = element_text(color = "black"),
+        legend.position = "none",
+        legend.title = element_text(size = 10),
+        legend.key.size = unit(0.5, 'cm'))
+}
+plot_params_raw <- function(dataset){
+  a <- plot_params(dataset, "DO.obs_mgL") + labs(tag = "a") +
+  theme(legend.position = c(0.2, 0.9))
+  b <- plot_params(dataset, "watertemp_C") + labs(tag = "b")
+  c <- plot_params(dataset, "pressure_kPa") + labs(tag = "c")
+  d <- plot_params(dataset, "discharge_m3s") +labs(tag = "d")
+  e <- plot_params(dataset, "par_umolm2s") + labs(tag = "e")
+  grid.arrange(a,b,c,d,e, top = paste0(sitecode, " ", sampdate, 
+                                         ", raw NEON data"))
+}
+
+# Choose site wanted
+i <- 9
+sitecode <- siteList[i]
+startdate <- paste0(year(NEON_sites$date), "-01")[i]
+enddate <- paste0(year(NEON_sites$date), "-12")[i]
+
+# Pull sampling date for site
+sampdate <- NEON_sites$date[i]
+
+# Load RDS file
+direc <- "data/metabolism/parameters/raw/"
+data <- read_rds(paste0(direc, "MetabolismParameters_Raw_", sitecode, "_", 
+                        startdate, "_", enddate, ".rds"))
+
+# Filter metabolism parameter data to the two weeks surrounding rate measurements
+filtstart <- ymd_hms(paste0(sampdate + hours(5)), tz = "UTC")
+filtend <- ymd_hms(paste0(sampdate + hours(24+9)), tz = "UTC")
+
+# Select parameters of interest, filter to time period of interest
+params <- 
+  data$metabolism.parameters %>%
+  filter(datetime_UTC %within% interval(filtstart, filtend)) %>%
+  select(siteID, location, datetime_UTC, DO.obs_mgL, DO.sat_mgL,
+         watertemp_C, pressure_kPa, discharge_m3s, par_umolm2s)
+
+rawplot <- plot_params_raw(params)
+
+# Save plot
+ggsave(paste0(direc, "MetabolismParameters_Raw_", sitecode, "_", sampdate, ".png"), 
+       rawplot, width = 7, height = 7, units = "in", dpi = 600)
+```
+
+```{r add USGS discharge to SYCA}
+# SYCA neon gage missing discharge data - add from USGS 09510200
+q <- 
+  dataRetrieval::readNWISuv(siteNumbers = "09510200", parameterCd = "00060",
+                            startDate =  NEON_sites$date[siteNo] - days(1),
+                            endDate = NEON_sites$date[siteNo] + days(3))
+
+
+SYCA$depth <- NEON_sites[9,]$TransectDepth_Avg_cm / 100
+SYCA$discharge <- NA
+SYCA$velocity <- NA
+SYCA$tt <- NA
+SYCA$K600.estimate <- NA
+```
+
+```{r compile 4. KING 2018}
+# Load in dataset
+King <- 
+  read_csv("data/metabolism/parameters/raw/rawData_KingsCreekKS_2018/miniDOTFile_Kings2018.csv")
+
+# Refomat time add lat longs
+King <- 
+  King %>%
+  mutate(SiteName = "KING", referenceLatitude = 39.10506, 
+         referenceLongitude = -96.60336, 
+         LocalDateTime = with_tz(force_tz(DateTime_EST, 
+                                          tz = "America/Detroit"), 
+                                 tz = "America/Chicago"),
+         DateTime_UTC = with_tz(LocalDateTime, tz = "UTC")) %>%
+  # Rename columns to match neonMetabolizer formatting
+  rename(any_of(c(DO_mgL = "ODO_mgL", DOsat_pct = "ODOsat_perc"))) %>%
+  relocate(c(SiteName, referenceLatitude, referenceLongitude, LocalDateTime,
+             DateTime_UTC), .before = WaterTemp_C) %>%
+  select(-c(DateTime_EST))
+
+# Load air pressure data
+airpress <- 
+  read_csv("data/metabolism/parameters/raw/rawData_KingsCreekKS_2018/Ashland_AirPress.csv")
+
+# We need air pressure at altitude, we have air pressure at sea level:
+# P = P0 * e^(-gM(h - h0) / RT)
+#   where:
+#       P = air pressure at altitude h (in Pa)
+#       P0 = air pressure at reference altitude (sea level)
+#       h = altitude (in m, here = 325 m)
+#       h0 = altitude at sea level (= 0 m)
+#       T = air temperature at altitude h (units of K)
+h <- 323 #m, elevation above sea level
+g <- 9.81 #m/s2, force of gravity
+M <-  0.0289644 #kg/mol, molar mass of air
+R <- 8.31432 # N m/mol K, gas constant
+
+# Convert units and run equation
+airpress <- 
+  airpress %>%
+  transmute(LocalDateTime = ymd_hms(datetime, tz = "America/Chicago"),
+         DateTime_UTC = with_tz(LocalDateTime, tzone = "UTC"),
+         sealevelpressure = sealevelpressure * 100, # Convert from mBar to Pa
+         temp = temp + 273.15, # Convert from C to K
+         AirPress_Pa = sealevelpressure * exp((-g*M*h)/(R*temp)), #plug into equation
+         AirPress_mBar = AirPress_Pa / 100) #convert back to mBar
+
+# Looks like it makes sense, let's drop sealevelpressure, lat/long, before merge
+# Filter to same time range as blaine
+airpress <- 
+  airpress %>%
+  select(-c(sealevelpressure, temp, AirPress_Pa)) %>%
+  filter(LocalDateTime >= first(King$LocalDateTime) & 
+           LocalDateTime <= last(King$LocalDateTime))
+
+# Merge
+King <- 
+  full_join(King, airpress) %>%
+  arrange(LocalDateTime)
+
+#### Create equal time breaks from start to end of data series ##############
+# Create vector containing all 15 min chunks from start to end time of series
+# Round start and end to nearest 15 min chunk, in case sensor log times
+# are not every 15 minutes apart
+seq_start <- round_date(first(King$DateTime_UTC), unit = "15 minute")
+seq_end <- round_date(last(King$DateTime_UTC), unit = "15 minute")
+sequence <- data.frame(DateTime_UTC = seq(seq_start, seq_end, by = "15 min"),
+                       LocalDateTime = seq(with_tz(seq_start, tz = "America/Chicago"), 
+                                           with_tz(seq_end, tz = "America/Chicago"), 
+                                           by = "15 min"))
+
+# Function to merge equal breaks with dataframes
+equalbreaks <- function(dataframe){
+  # Join sequence of datetimes with raw data at each station
+  dataframe <- dplyr::full_join(dataframe, sequence)
+  # Arrange by date
+  dataframe <- dplyr::arrange(dataframe, DateTime_UTC)
+  return(dataframe)
+}
+# Run function
+King <- equalbreaks(King)
+
+# First air press entry is empty - fix (will be an issue for NA interp)
+King$AirPress_mBar[1] <- first(na.omit(King$AirPress_mBar))
+
+# Fill NA in character cols
+King$SiteName <- unique(na.omit(King$SiteName))
+King$referenceLatitude <- unique(na.omit(King$referenceLatitude))
+King$referenceLongitude<- unique(na.omit(King$referenceLongitude))
+
+#### Fill NA values ##########################################################
+# List numeric columns in dataframe
+sensCols <- c("DO_mgL", "WaterTemp_C", "AirPress_mBar")
+
+for(i in seq_along(sensCols)){
+  # Impute gaps using linear interpolation because they are so small
+  imp <- imputeTS::na_interpolation(King %>% dplyr::select(sensCols[i])) 
+  # Set values in dataframe to imputed values
+  King[sensCols[i]] <- imp
+}
+
+#### Calculate dissolved oxygen saturation from water temp, air pressure, and DO
+King$DOsat_mgL <- streamMetabolizer::calc_DO_sat(King$WaterTemp_C, King$AirPress_mBar)
+
+#### Add depth and discharge info ##############################################
+# Avg depth from cross-section file
+King$Depth_m <- 0.193846154 #m
+
+# Assume that discharge was constant across deployment period 
+# (deployment period was short), so we can model with normal K pooling
+
+# Save copy of raw data, this will be returned to user in output
+rawData <- King
+
+#### Calculate solar time ############
+King$solarTime <- 
+  streamMetabolizer::convert_UTC_to_solartime(King$DateTime_UTC, 
+                                              longitude = King$referenceLongitude)
+
+#### Estimate PAR based on latitude #######################################
+King$Light_PAR <- streamMetabolizer::calc_light(King$solarTime, 
+                                              latitude = King$referenceLatitude, 
+                                              longitude = King$referenceLongitude)
+
+#### filter to only 15-min times and organize dataset ##########################
+cleanData <- King %>%
+  filter(minute(DateTime_UTC) %in% c(0, 15, 30, 45)) %>%
+  relocate(solarTime, .after = DateTime_UTC) %>%
+  relocate(DOsat_mgL, .after = DOsat_mgL)
+
+#### Format cleanData for metabolism modeling ################################
+formattedData <- King %>%
+  # Preserve only data collected on the 15-min intervals
+  filter(minute(DateTime_UTC) %in% c(0, 15, 30, 45)) %>%
+  rename(any_of(c(solar.time = "solarTime", DO.obs = "DO_mgL", DO.sat = "DOsat_mgL",
+                  depth = "Depth_m", discharge = "Discharge_m3s", temp.water = "WaterTemp_C",
+                  light = "Light_PAR"))) %>%
+  select(any_of(c("solar.time", "DO.obs", "DO.sat", "depth", "discharge", "temp.water", "light")))
+
+#### Return to user #########################################################
+output <- list(data = formattedData,
+                cleanData = cleanData,
+                rawData = rawData)
+
+#### Save cleaned output ######################################################
+# Save cleaned data
+write_rds(output, 
+          "data/metabolism/parameters/clean/MetabolismParameters_Clean_KING_2018-06-11_2018-06-13.rds")
+formattedData <-
+  read_rds("data/metabolism/parameters/clean/MetabolismParameters_Clean_KING_2018-06-11_2018-06-13.rds")
+
+# filter to time period of interest
+# Will need to model data for 12th, rather than 13th, as we don't have a full day of data for 13th
+formattedData <- 
+  formattedData$data %>%
+  filter(solar.time >= ymd_hms("2018-06-12 00:00:00", tz = "UTC") &
+           solar.time <= ymd_hms("2018-06-12 23:59:00", tz = "UTC")) %>%
+  rename(light.calc = light) %>%
+  mutate(siteID = "KING", DO.obs.smooth = NA, pressure = NA, discharge = NA,
+         light.data = NA, K600.estimate = NA)
+write_rds(formattedData, 
+          "data/metabolism/parameters/clean/parameters_clean_KING_2018-06-13.rds")
+
+cleanplot <- plot_params_clean(formattedData)
+ggsave(paste0("data/metabolism/parameters/clean/parameters_clean_", "KING", "_", "2018-06-12", ".png"), 
+         cleanplot, width = 8, height = 9, units = "in", dpi = 600)
+```
+
+```{r clean neon data}
+# Load hydraulic geometry constants from Aho et al 2024 Table 2
+aho_hydraul <- 
+  read_csv("data/metabolism/parameters/Aho-et-al-2024_Table2.csv")
+# Load K600 constants from estimate Aho et al 2024 Table 4
+aho_K600coeff <- 
+  read_csv("data/metabolism/parameters/Aho-et-al-2024_Table4.csv")
+
+# information from Aho et al 2024 supplemental
+aho_K600 <-
+  read_csv("data/metabolism/parameters/edi.1735.2/gasExchange_ds_v2.csv")
+
+# Helper functions
+calc_z <- function(c, f, Q){
+  c * Q ^ f
+}
+calc_v <- function(k, m, Q){
+  k * Q ^ m
+}
+# Calculate loess at 10% span for specified variable at upstream and downstream
+param_smoother <- function(df, yvar, span){
+  # Get locations
+  loc <- unique(df$location)
+  varname <- paste0(yvar, ".smooth")
+  
+  # First location
+  sub_1 <- 
+    filter(df, location == loc[1]) %>%
+    select(solar.time, location, all_of(yvar))
+  # Run model
+  modl_1 <-
+    loess(sub_1[[yvar]] ~ as.numeric(sub_1$solar.time), span = span)
+  # Predict
+  sub_1[,varname] <- predict(modl_1, sub_1)
+  
+  if(length(loc) == 2){
+    # Second location
+    sub_2 <- 
+      filter(df, location == loc[2]) %>%
+      select(solar.time, location, all_of(yvar))
+    # Run model
+    modl_2 <-
+      loess(sub_2[[yvar]] ~ as.numeric(sub_2$solar.time), span = span)
+    # Predict
+    sub_2[,varname] <- predict(modl_2, sub_2)
+    # Merge
+    subs <- full_join(sub_1, sub_2)
+  } else{
+    subs <- sub_1
+  }
+  
+  out <- full_join(df, subs)
+  return(out)
+}
+plot_params_clean <- function(dataset){
+  sitecode <- unique(dataset$siteID)
+  sampdate <- unique(date(dataset$solar.time))
+  
+  a <- 
+    plot_params(dataset, "DO.obs") + 
+    labs(tag = "a") +
+    theme(legend.position = c(0.2, 0.9))
+  b <- plot_params(dataset, "DO.obs.smooth") + labs(tag = "b") 
+  c <- plot_params(dataset, "DO.sat") + labs(tag = "c")
+  d <- plot_params(dataset, "temp.water") + labs(tag = "d")
+  e <- plot_params(dataset, "pressure") + labs(tag = "e")
+  f <- plot_params(dataset, "discharge") +labs(tag = "f")
+  g <- plot_params(dataset, "light.data") + labs(tag = "g")
+  h <- plot_params(dataset, "light.calc") + labs(tag = "h")
+  i <- plot_params(dataset, "depth") + labs(tag = "i")
+  j <-  plot_params(dataset, "K600.estimate") + labs(tag = "j")
+  if("tt" %in% names(dataset)){
+    k <- plot_params(dataset, "tt") + labs(tag = "k")
+    grid.arrange(a,b,c,d,e,f,g,h,i,j, k,
+                 top = paste0(sitecode, " ", sampdate, ", clean NEON data"))
+  } else{
+    grid.arrange(a,b,c,d,e,f,g,h,i,j,
+                 top = paste0(sitecode, " ", sampdate, ", clean NEON data"))
+  }
+}
+NAfill <- function(df){
+   # find NA cols in the df
+  NAcols <- names(df[colSums(is.na(df)) > 0])
+  # But if column is completely NA, exclude from fill
+  totalNA <- names(df[colSums(is.na(df)) == nrow(df)])
+  if(length(totalNA) > 0){
+    NAcols <- NAcols[!(NAcols %in% totalNA)]
+  }
+  # Loop through columns, impute missing vals for each column
+  for(i in seq_along(NAcols)){
+    imp <- imputeTS::na_kalman(select(df, NAcols[i]))
+    df[NAcols[i]] <- imp
+  }
+  return(df)
+}
+
+# Wrapper function for all the cleaning steps
+cleanyfunc <- function(siteNo, single_station, add_USGS = FALSE, 
+                       USGS_siteno = NA,
+                       add_measured_depth = FALSE, keep_station = NA){
+  sitecode <- siteList[siteNo]
+  sampdate <- NEON_sites$date[siteNo]
+  
+  # Load raw data file ###########################################################
+  direc <- "data/metabolism/parameters/raw/"
+  data <- read_rds(paste0(direc, "MetabolismParameters_Raw_", 
+                          sitecode, "_", 
+                          paste0(year(sampdate), "-01"), "_", 
+                          paste0(year(sampdate), "-12"), ".rds"))
+  
+  # Filter metabolism parameter data to the day of rate measurements
+  startdate <- ymd_hms(paste0(sampdate, " 00:00:00"), tz = "UTC")
+  enddate <- ymd_hms(paste0(sampdate, " 23:59:00"), tz = "UTC")
+  
+  # Clean and reformat data
+  formatted_data <- 
+    reformat_NEON(data, startdate, enddate, calculate_light = TRUE,
+                  single_station_vars = c("pressure_kPa", "discharge_m3s", 
+                                          "par_umolm2s"))
+  
+  # Do single station subset here, if needed ###################################
+  if(single_station){
+    formatted_data <- filter(formatted_data, location == keep_station)
+  }
+  
+  # Add USGS discharge data here, if specified #################################
+  if(add_USGS){
+    disch <- 
+      dataRetrieval::readNWISuv(siteNumbers = USGS_siteno, 
+                                parameterCd = "00060",
+                                startDate =  sampdate - days(1),
+                                endDate = sampdate + days(3))
+    long <- NEON_sites$Longitude[NEON_sites$NEON_SiteID == sitecode]
+    q <- 
+      disch %>%
+      mutate(dateTime_UTC = ymd_hms(dateTime)) %>%
+      # convert discharge to ft3/s 
+      mutate(discharge = X_00060_00000 * 0.02831685,
+             solar.time = convert_UTC_to_solartime(dateTime, 
+                                                   longitude = long),
+         solar.time = round_date(solar.time, unit = "min")) %>%
+      select(solar.time, discharge)
+    formatted_data <- 
+      select(formatted_data, -discharge) %>%
+      left_join(., q, by = "solar.time")
+  }
+  
+  if(add_measured_depth){
+    formatted_data$depth <- NEON_sites[siteNo,]$TransectDepth_Avg_cm / 100
+  }
+  
+  # Calc depth and travel time ###################################################
+  # Grab distance between sensors
+  distance_m <-
+    data$geomorphic %>%
+    mutate(timediff = 
+             abs(datetime_UTC - ymd_hms(paste0(sampdate, " 00:00:00"), 
+                                        tz = "UTC"))) %>%
+    filter(timediff == min(timediff)) %>%
+    select(distance_between_sensors_m)
+  distance_m <-as.numeric(distance_m)
+    
+  # Pull hydraulic geometry constants for site
+  siteGeom <- aho_hydraul[aho_hydraul$siteID == sitecode,]
+  
+  # Use hydraulic geometries to calculate depth, velocity, and travel time
+  # travel time = distance between sensors / velocity, in min
+  if(!add_measured_depth){
+    formatted_data <-
+      mutate(formatted_data, 
+           depth = calc_z(c = siteGeom$c, f = siteGeom$f, Q = discharge),
+           velocity = calc_v(k = siteGeom$k, m = siteGeom$m, Q = discharge)) 
+  } else{
+    formatted_data <-
+      mutate(formatted_data, 
+           velocity = calc_v(k = siteGeom$k, m = siteGeom$m, Q = discharge)) 
+  }
+  
+    
+  if(!single_station){
+    formatted_data$tt = distance_m / formatted_data$velocity / 60
+  }
+  
+  # Deal with NA values ########################################################
+  numNA <- sum(is.na(formatted_data))
+  
+  # Fill NA values w/ ARIMA
+  if(numNA > 0){
+    # Break into upstream and downstream dfs
+    locs <- unique(formatted_data$location)
+    
+    df1 <- filter(formatted_data, location == locs[1])
+    df1 <- NAfill(df1)
+    
+    if(length(locs) == 2){
+      df2 <- filter(formatted_data, location == locs[2])
+      df2 <- NAfill(df2)
+      # Merge
+      formatted_data <- 
+        full_join(df1, df2) %>%
+        arrange(solar.time)
+    } else{
+      formatted_data <- df1
+    }
+  }
+  
+  # Calculate smoothed terms ###################################################
+  formatted <- 
+    param_smoother(formatted_data, "DO.obs", span = 0.25)
+  
+  # Get priors for K600 ##########################################################
+  K600coeff_site <- filter(aho_K600coeff, siteID == sitecode)
+  a <- K600coeff_site$K600_a_estimate
+  b <- K600coeff_site$K600_b_estimate
+  
+  # Use coefficients to estimate K600, K600 = a * Q [l/s] ^b
+  if(length(a) != 0){
+    formatted$K600.estimate <- a * (formatted$discharge * 1000)^b
+  }
+  
+  return(formatted)
+}
+plot_save_clean <- function(data){
+  sitecode <- as.character(unique(data$siteID))
+  sampdate <- unique(date(data$solar.time))
+  
+  # Plot data
+  cleanplot <- plot_params_clean(data)
+  
+  # Save plot
+  direc <- "data/metabolism/parameters/clean/"
+  ggsave(paste0(direc, "parameters_clean_", sitecode, "_", sampdate, ".png"), 
+         cleanplot, width = 8, height = 9, units = "in", dpi = 600)
+  
+  # Save formatted data
+  fileName <- paste0(direc, "parameters_clean_", sitecode, "_", sampdate, ".rds")
+  write_rds(data, compress = "gz", file = fileName)
+}
+
+# 1. ARIK
+# Missing key data: DO
+
+# 2. PRIN
+PRIN <- cleanyfunc(siteNo = 2, single_station = FALSE)
+plot_save_clean(PRIN)
+
+# 3. MCDI
+MCDI <- cleanyfunc(siteNo = 3, single_station = TRUE, keep_station = "downstream")
+plot_save_clean(MCDI)
+
+# 5. HOPB
+HOPB <- cleanyfunc(siteNo = 5, single_station = TRUE, 
+                   keep_station = "upstream", add_measured_depth = TRUE)
+plot_save_clean(HOPB)
+
+# 6. GUIL
+GUIL <- cleanyfunc(siteNo = 6, single_station = FALSE)
+plot_save_clean(GUIL)
+
+# 7. CUPE
+CUPE <- cleanyfunc(siteNo = 7, single_station = FALSE)
+plot_save_clean(CUPE)
+
+# 8. KING
+# Missing key data: DO, water temp, discharge
+
+# 9. SYCA
+SYCA <- cleanyfunc(siteNo = 9, single_station = FALSE, add_USGS = TRUE,
+                   USGS_siteno = "09510200", add_measured_depth = TRUE)
+plot_save_clean(SYCA)
+
+# 10. ARIK
+ARIK <- cleanyfunc(siteNo = 10, single_station = TRUE, 
+                   keep_station = "downstream")
+ARIK$K600.estimate <- NA
+plot_save_clean(ARIK)
+
+# 11. CARI
+CARI <- cleanyfunc(siteNo = 11, single_station = FALSE)
+plot_save_clean(CARI)
+
+# 12. BLDE
+BLDE <- cleanyfunc(siteNo = 12, single_station = TRUE, 
+                   keep_station = "upstream")
+plot_save_clean(BLDE)
+
+# 13. MCRA
+# Missing key data: DO, water temp, discharge
+
+# 14. MART
+MART <- cleanyfunc(siteNo = 14, single_station = FALSE, 
+                   add_measured_depth = TRUE)
+plot_save_clean(MART)
+```
+
+```{r two station model}
+# Load data
+type_DO <- "DO-smooth"
+type_light <- "light-calc"
+
+# Select light & DO
+modeldata <- 
+  formatted %>%
+  select(-DO.obs) %>%
+  rename(DO.obs = DO.obs.smooth, light = light.calc)
+
+# For K600 priors, set meanlog to the mean of K600 estimates
+K600_site_meanlog <- mean(log10(formatted$K600.estimate))
+
+modname <- "o2_twostation"
+
+# Set specs and K600 prior
+specs <-
+  set_twostation_specs(model_name = modname, 
+                       verbose = TRUE,
+                       K600_daily_meanlog = K600_site_meanlog,
+                       K600_daily_sdlog = K600_site_meanlog,
+                       n_cores = 8, n_chains = 8)
+
+# Run model
+modout <- 
+  run_twostation(data = modeldata, specs = specs, upname = "upstream",
+                 downname = "downstream")
+
+# View predicted DO
+ggplot(data = modout$fit_info$modeled_gas, aes(x = solar.time)) +
+  geom_ribbon(aes(y = DO_mod_down_mean, 
+                  ymin =DO_mod_down_mean -  DO_mod_down_sd,
+                  ymax = DO_mod_down_mean + DO_mod_down_sd, 
+                  fill = "modeled"), alpha = 0.5) +
+  geom_line(aes(y = DO_mod_down_mean, color = "modeled")) +
+  geom_point(aes(y = DO_obs_down, fill = "measured", color = "measured"), 
+             size = 1)
+
+# View fit statistics
+modout$fit_info$fit_stats
+
+# Trace plots
+rstan::traceplot(modout[["mcmc_fit"]], 
+                 pars = c("GPP_daily", "ER_daily", "K600_daily"),
+                 inc_warmup = TRUE)
+rstan::plot(modout[["mcmc_fit"]],
+            pars = c("GPP_daily", "ER_daily", "K600_daily"))
+
+#### Save to file ##############################################################
+# Save results
+direc <- "data/metabolism/models/"
+
+modName <- paste0(direc, modname, "_", type_DO, "_", type_light, "_",
+                  sitecode, "_", sampdate, ".rds")
+write_rds(modout, file = modName, compress = "gz")
+```
+
+```{r single station model}
+# streamMetabolizer settings ###################################################
+modelyfunc <- function(siteNo, type_light, type_DO, force_upstream = FALSE){
+  sitecode <- siteList[siteNo]
+  sampdate <- NEON_sites$date[siteNo]
+  
+  # Load clean data ############################################################
+  direc <- "data/metabolism/parameters/clean/"
+  data <- read_rds(paste0(direc, "parameters_clean_", sitecode, "_", 
+                          sampdate, ".rds"))
+  
+  # If we have data from both stations, select the downstream sensor ###########
+  locs <- unique(data$location)
+  if(length(locs) == 2){
+    if(force_upstream){
+      data <- filter(data, location == "upstream")
+    }else{
+      data <- filter(data, location == "downstream")
+    }
+  }
+
+  if(type_light == "light-calc"){
+    data <- rename(data, light = light.calc)
+  }
+  
+  # For K600 priors, set meanlog to the mean of K600 estimates
+  # If any 0s in depth, K600.est will be Inf, change to NA
+  data$K600.estimate[is.infinite(data$K600.estimate)] <- NA
+  K600_site_meanlog <- mean(log10(na.omit(data$K600.estimate)))
+  if(is.na(K600_site_meanlog)){K600_site_meanlog <- log10(12)}
+  if(K600_site_meanlog < 0){K600_site_meanlog <- 1}
+  
+  # Omit extra columns so streammetabolizer is happy
+  extracols <- c("siteID", "location", "pressure", "light.data", "velocity",
+                 "tt", "DO.obs.smooth", "light.data.smooth", "K600.estimate",
+                 "discharge", "depth.measured")
+  data <- 
+    data %>%
+    select(-any_of(extracols))
+  
+  # Set model specs ############################################################
+  modname <- "b_np_oipi_tr_plrckm.stan"
+  model_specs <- specs(model_name = modname, 
+                       K600_daily_meanlog = K600_site_meanlog,
+                       K600_daily_sdlog = K600_site_meanlog,
+                       day_start = -1.5, day_end = 30,
+                       day_tests = "even_timesteps",
+                       verbose = TRUE, 
+                       n_cores = 8, n_chains = 8, 
+                       burnin_steps = 500, saved_steps = 2000) 
+  
+  # Run model ##################################################################
+  results <- 
+    streamMetabolizer::metab(specs = model_specs, data = data)
+  
+  # Save
+  direc <- "data/metabolism/models/"
+  modtitle <- str_extract(modname, "(.+)\\.stan", group = 1)
+
+  modName <- paste0(direc, modtitle, "_", type_DO, "_", type_light, "_",
+                  sitecode, "_", sampdate, ".rds")
+  write_rds(results, file = modName, compress = "gz")
+  
+  return(results)
+}
+
+# 1. ARIK   can't model, no DO
+
+# 2. PRIN
+results <- modelyfunc(siteNo = 2, 
+                      type_light = "light-calc",
+                      type_DO = "DO-data")
+# 3. MCDI
+results <- modelyfunc(siteNo = 3, 
+                      type_light = "light-calc",
+                      type_DO = "DO-data")
+
+# 4. KING
+results <- modelyfunc(siteNo = 4, 
+                      type_light = "light-calc",
+                      type_DO = "DO-data")
+
+# 5. HOPB
+results <- modelyfunc(siteNo = 5, 
+                      type_light = "light-calc",
+                      type_DO = "DO-data")
+
+# 6. GUIL
+results <- modelyfunc(siteNo = 6, 
+                      type_light = "light-calc",
+                      type_DO = "DO-data")
+
+# 7. CUPE
+results <- modelyfunc(siteNo = 7, 
+                      type_light = "light-calc",
+                      type_DO = "DO-data")
+
+# 8. KINGS 2019 can't model, no DO
+
+# 9. SYCA
+results <- modelyfunc(siteNo = 9, 
+                      type_light = "light-calc",
+                      type_DO = "DO-data")
+# REALLY bad fit. wonder if reach is dry/sensors were out of the water
+# Yep. notes on sonde data denote that both upstream and downstream sensors 
+# buried in sediment, Feb-June 2019
+
+# 10. ARIK 2019
+# ARIK has no k estimates. use default value = log10(12)
+results <- modelyfunc(siteNo = 10, 
+                      type_light = "light-calc",
+                      type_DO = "DO-data")
+
+# 11. CARI
+results <- modelyfunc(siteNo = 11, 
+                      type_light = "light-calc",
+                      type_DO = "DO-data")
+
+# 12. BLDE
+results <- modelyfunc(siteNo = 12, 
+                      type_light = "light-calc",
+                      type_DO = "DO-data")
+
+# 13. MCRA  can't model, no DO
+
+# 14. MART
+# Fit on downstream data was really bad, but maybe upstream data will be better
+results <- modelyfunc(siteNo = 14, force_upstream = TRUE,
+                      type_light = "light-calc",
+                      type_DO = "DO-data")
+# Upstream data fit is great
+
+# NOTE: write a fit inspection function here
+
+# Inspect ######################################################################
+get_fit(results)$warnings
+get_fit(results)$errors
+
+traceplot(results@mcmc, 
+          pars = c("GPP_daily", "ER_daily", "K600_daily", "err_obs_iid_sigma"),
+          inc_warmup = TRUE)
+rstan::plot(results@mcmc, pars = c("GPP_daily", "ER_daily", "K600_daily"))
+
+
+results@fit[["daily"]]$DO_R2_mean
+
+results@fit[["overall"]]$err_proc_iid_sigma_Rhat
+results@fit[["daily"]]$K600_daily_Rhat
+results@fit[["daily"]]$GPP_daily_Rhat
+results@fit[["daily"]]$ER_daily_Rhat
+
+get_params(results)
+plot_DO_preds(results)
+```
+
+```{r StreamPULSE siteList}
+# Pull StreamPULSE site codes
+StreamPULSE_sites <- CAREER_sites %>% filter(Organization == "StreamPULSE")
+
+# Compile list of StreamPULSE sites, start and end dates for modeling
+StreamPULSE_sites <- 
+  StreamPULSE_sites %>%
+  select(StreamPULSE_SiteID, date) %>%
+  mutate(StreamPULSE_SiteID = as.character(StreamPULSE_SiteID),
+         region = str_match(StreamPULSE_SiteID, pattern = "(.+)_(.+)")[,2],
+         siteID = str_match(StreamPULSE_SiteID, pattern = "(.+)_(.+)")[,3],
+         startdate = paste0(year(date), "-01-01"),
+         enddate = paste0(year(date), "-12-31")) 
+
+siteList <- StreamPULSE_sites$StreamPULSE_SiteID
+# Parse region (state) and site abbreviation from combined string
+region <- StreamPULSE_sites$region
+site <- StreamPULSE_sites$siteID
+# Create date strings for start and end of data pull
+startdate <- StreamPULSE_sites$startdate
+enddate <- StreamPULSE_sites$enddate
+```
+
+```{r pull streampulse data}
+pullsp <- function(siteNo){
+  region <- StreamPULSE_sites$region[siteNo]
+  sitecode <- StreamPULSE_sites$StreamPULSE_SiteID[siteNo]
+  startdate <- StreamPULSE_sites$startdate[siteNo]
+  enddate <- StreamPULSE_sites$enddate[siteNo]
+  
+  vars <- c("DO_mgL","DOsat_pct","WaterTemp_C","Light_PAR","Level_m", 
+            "Discharge_m3s", "Depth_m", "AirPres_kPa")
+  
+  data <- StreamPULSE::request_data(sitecode = sitecode, 
+                                    startdate = startdate, 
+                                    enddate = enddate, 
+                                    variables = vars)
+  
+  # Save raw data
+  dName <- paste0("data/metabolism/parameters/raw/MetabolismParameters_Raw_", 
+                  sitecode, "_", 
+                  startdate, "_", 
+                  enddate)
+  write_rds(data, file = paste0(dName, ".rds"), compress = "xz")
+}
+
+# 1. NC_NHC
+pullsp(siteNo = 1)
+# 2. NC_ENO
+pullsp(siteNo = 2)
+# 3. WI_BEC
+pullsp(siteNo = 3)
+# 4. WI_BRW
+pullsp(siteNo = 4)
+# 5. NHC
+pullsp(siteNo = 5)
+# 6. iche
+pullsp(siteNo = 6)
+# 7. Pilg Jun 2018
+# 8. Pilg July 2018
+pullsp(siteNo = 7)
+
+# 9. Hubbard
+# No DO data, can't model
+
+# 10. whb
+# look at this seperately
+
+# 11. DCF
+# No data
+
+# 12. QP
+pullsp(siteNo = 12)
+
+# 13. QS
+# sonadora - look at this seperately
+
+# 14. WB
+pullsp(siteNo = 14)
+
+# 15. PILG 2019 Jun
+pullsp(siteNo = 15)
+
+# 16. PILG 2019 Sep
+# no data
+
+```
+
+```{r clean sp}
+formatsp <- function(siteNo, add_measured_depth = FALSE){
+  region <- StreamPULSE_sites$region[siteNo]
+  sitecode <- StreamPULSE_sites$StreamPULSE_SiteID[siteNo]
+  startdate <- StreamPULSE_sites$startdate[siteNo]
+  enddate <- StreamPULSE_sites$enddate[siteNo]
+  sampdate <- StreamPULSE_sites$date[siteNo]
+  
+  # load raw data
+  dName <- paste0("data/metabolism/parameters/raw/MetabolismParameters_Raw_", 
+                  sitecode, "_", 
+                  startdate, "_", 
+                  enddate)
+  data <- read_rds(file = paste0(dName, ".rds"))
+  
+  # reformat
+  data <- 
+    StreamPULSE::prep_metabolism(data, type = "bayes",
+                                 model = "streamMetabolizer",
+                                 interval = "15 min",
+                                 retrieve_air_pres = T,
+                                 estimate_areal_depth = T)
+  
+  # Filter to just the sample date
+  endsamp <- ymd_hms(paste0(sampdate, " 23:59:00 UTC"))
+  
+  params <- 
+    as.tibble(data$data) %>%
+    filter(solar.time >= sampdate &
+             solar.time <= endsamp) 
+  
+  if(add_measured_depth){
+    z_cm <- 
+      CAREER_sites$TransectDepth_Avg_cm[CAREER_sites$StreamPULSE_SiteID == 
+                                          sitecode & CAREER_sites$date == 
+                                          sampdate]
+    params$depth <- z_cm / 100
+  }
+  
+  # Update file
+  data$data <- params
+  data$specs$startdate <- min(params$solar.time)
+  data$specs$enddate <- max(params$solar.time)
+  
+  # Save
+  direc <- "data/metabolism/parameters/clean/"
+  fileName <- paste0(direc, "parameters_clean_", 
+                     sitecode, "_", sampdate, 
+                     ".rds")
+  write_rds(data, file = fileName)
+}
+
+# 1. NC_NHC
+formatsp(siteNo = 1)
+# 2. NC_ENO
+formatsp(siteNo = 2)
+# 3. WI_BEC
+formatsp(siteNo = 3)
+# 4. WI_BRW
+formatsp(siteNo = 4)
+# 5. NHC
+formatsp(siteNo = 5)
+# 6. iche
+formatsp(siteNo = 6)
+# 7. Pilg Jun 2018
+formatsp(siteNo = 7)
+# 8. Pilg July 2018
+pullsp(siteNo = 8)
+# 12. QP
+formatsp(siteNo = 12)
+# 14. WB
+formatsp(siteNo = 14)
+# 15. PILG 2019 Jun
+formatsp(siteNo = 15, add_measured_depth = TRUE)
+```
+
+```{r format 10 WHB and 11 DCF}
+equalbreaks <- function(dataframe){
+  seq_start <- round_date(first(dataframe$solar.time), unit = "15 minute")
+  seq_end <- round_date(last(dataframe$solar.time), unit = "15 minute")
+  sequence <- data.frame(solar.time = seq(seq_start, seq_end, by = "15 min"))
+  # Join sequence of datetimes with raw data at each station
+  dataframe <- dplyr::full_join(dataframe, sequence)
+  # Arrange by date
+  dataframe <- dplyr::arrange(dataframe, solar.time)
+  return(dataframe)
+}
+# Select data necessary for metabolism modeling, rename columns, add lat longs
+formatNH <- function(folder, sitecode, lat, long){
+  direc <- "data/metabolism/parameters/raw/"
+  filelist <- list.files(paste0(direc, folder))
+  filename_wq <- na.omit(str_extract(filelist, ".+csv"))
+  
+  data <- read_csv(paste0(direc, folder, filename_wq),
+                   na = "NAN")
+  
+  # Set datetime column to have local time zone (EST)
+  data$Date <- force_tz(data$Date, tzone = "EST")
+  # Add new column for UTC time
+  data$DateTimeUTC <- with_tz(data$Date, tzone = "UTC")
+  
+  data <-
+    data %>%
+    # Select only the columns relevant to metabolism
+    select(any_of(c("Site","DateTimeUTC", "TempC", "ODOMGL", "ODOPerCent", 
+                    "PAR", "Stage", "Q"))) %>%
+    # Add columns for site name, reference latitude, and reference longitude
+    mutate(referenceLatitude = lat, 
+           referenceLongitude = long,
+           level_m = Stage / 100,
+           discharge = Q / 1000,
+           solar.time = 
+             streamMetabolizer::convert_UTC_to_solartime(DateTimeUTC,
+                                                         longitude = long),
+           solar.time = round_date(solar.time, unit = "minute")) %>%
+    # Rename columns to match streammetabolizer formatting
+    rename(any_of(c(siteID = "Site", 
+                    DO.obs = "ODOMGL", 
+                    DO.sat = "ODOPerCent", 
+                    temp.water = "TempC", 
+                    light.data = "PAR"))) %>%
+    # Drop old columns
+    select(-c(Stage, Q, DateTimeUTC, referenceLatitude, referenceLongitude)) 
+  
+  startdate <- min(date(data$solar.time))
+  enddate <- max(date(data$solar.time))
+  
+  # Save
+  dName <- paste0("data/metabolism/parameters/raw/MetabolismParameters_Raw_", 
+                  sitecode, "_", 
+                  startdate, "_", 
+                  enddate)
+  write_rds(data, file = paste0(dName, ".rds"), compress = "xz")
+  
+  return(data)
+}
+cleanNH <- function(data, sitecode, sampdate, lat, long){
+  # segment to time period of interest
+  data <-
+    data %>%
+    filter(solar.time >= ymd_hms(paste0(sampdate, " 00:00:00"), tz = "UTC") &
+             solar.time < ymd_hms(paste0(sampdate, " 23:59:00"), tz = "UTC"))
+  
+  # calculate light
+  data$light <- calc_light(data$solar.time, latitude = lat, longitude = long)
+  
+  # Calc depth here following the streampulse method??
+  data$depth <- streamMetabolizer::calc_depth(data$discharge)
+  
+  # Change DOsat from percent to mg/L
+  data$DO.sat <- (data$DO.obs * 100) / data$DO.sat
+  
+  # remove extra columns so streammetabolizer is happy
+  data <- select(data, -c("siteID", "light.data", "level_m"))
+  
+  # Make sure time breaks are equal
+  data <- equalbreaks(data)
+  data <-
+    data %>%
+    filter(solar.time >= ymd_hms(paste0(sampdate, " 00:00:00"), tz = "UTC") &
+             solar.time < ymd_hms(paste0(sampdate, " 23:59:00"), tz = "UTC"))
+  data <- 
+    imputeTS::na_interpolation(data) %>%
+    filter(minute(solar.time) %in% c("0", "15", "30", "45"))
+  data$light[data$light < 1] <- 0
+  
+  data <- list(data = data)
+  # Save as cleaned df
+  direc <- "data/metabolism/parameters/clean/"
+  
+  fileName <- paste0(direc, "parameters_clean_", 
+                     sitecode, "_", sampdate, 
+                     ".rds")
+  write_rds(data, file = fileName)
+  
+  return(data)
+}
+plot_params_NH <- function(dataset, sitecode){
+  dataset <- dataset$data
+  sampdate <- unique(date(dataset$solar.time))
+  
+  a <- 
+    plot_params(dataset, "DO.obs") + 
+    labs(tag = "a") 
+  b <- plot_params(dataset, "DO.sat") + labs(tag = "b")
+  c <- plot_params(dataset, "temp.water") + labs(tag = "c")
+  d <- plot_params(dataset, "discharge") +labs(tag = "d")
+  #e <- plot_params(dataset, "light.data") + labs(tag = "e")
+  f <- plot_params(dataset, "light") + labs(tag = "f")
+  #g <- plot_params(dataset, "level_m") + labs(tag = "g")
+  h <- plot_params(dataset, "depth") + labs(tag = "h")
+  cleanplot<- 
+    grid.arrange(a,b,c,d,f,h,
+               top = paste0(sitecode, " ", sampdate, ", clean data"))
+  
+  direc <- "data/metabolism/parameters/clean/"
+  ggsave(paste0(direc, "parameters_clean_", sitecode, "_", sampdate, ".png"), 
+         cleanplot, width = 8, height = 9, units = "in", dpi = 600)
+}
+
+# Run
+WHB <- formatNH(folder = "NH_WHB/", sitecode = "NH_WHB", 
+                lat = 43.12220, long = -71.00490)
+DCF <- formatNH(folder = "NH_DCF/", sitecode = "NH_DCF",
+                lat = 43.1344, long = -71.1838)
+
+# Clean
+WHBc <- cleanNH(WHB, sampdate = "2018-08-09", sitecode = "NH_WHB", 
+                lat = 43.12220, long = -71.00490)
+DCFc <- cleanNH(DCF, sampdate = "2018-08-10", sitecode = "NH_DCF", 
+                lat = 43.1344, long = -71.1838)
+
+# Plot
+plot_params_NH(WHBc, sitecode = "NH_WHB")
+plot_params_NH(DCFc, sitecode = "NH_DCF")
+```
+
+```{r format 13. sonadora}
+# Read in CSV files
+path <- "./data/metabolism/parameters/raw/PR_QS/"
+discharge <- read_csv(paste0(path, "Discharge.csv"))
+doAdjConc <- read_csv(paste0(path, "DOAdjConc.csv"))
+doConc <- read_csv(paste0(path, "DOConcentration.csv"))
+doSat <- read_csv(paste0(path, "DOPercentSaturation.csv"))
+light <- read_csv(paste0(path, "Light.csv"))
+stageHtHOBO <- read_csv(paste0(path, "StageHeight_HOBO.csv"))
+stageHt <- read_csv(paste0(path, "StageHeight.csv"))
+WaterTemp <- read_csv(paste0(path, "WaterTemp.csv"))
+AirPress <- read_csv(paste0(path, "AirPress.csv"))
+
+# Filter dates to just 2019, format variable column
+selectQS <- function(QSdata){
+  QSdata %>%
+    select(sitename, valuedatetime, variable, units, datavalue) %>%
+    filter(valuedatetime >= ymd_hms("2019-01-01 00:00:00") &
+             valuedatetime < ymd_hms("2020-01-01 00:00:00")) %>%
+    mutate(variable = str_replace_all(paste0(variable, "_", units), 
+           pattern = " ", replacement = "")) %>%
+    pivot_wider(names_from = variable, values_from = datavalue) %>%
+    select(-units)
+}
+
+# Perform variable selection on all dataframes
+discharge <- selectQS(discharge)
+doAdjConc <- selectQS(doAdjConc)
+doConc <- selectQS(doConc)
+doSat <- selectQS(doSat)
+light <- selectQS(light)
+stageHtHOBO <- selectQS(stageHtHOBO)
+stageHt <- selectQS(stageHt)
+WaterTemp <- selectQS(WaterTemp)
+AirPress <- selectQS(AirPress)
+
+# Merge into a single dataframe
+data <- 
+  full_join(discharge, doAdjConc) %>%
+  full_join(., doConc) %>%
+  full_join(., doSat) %>%
+  full_join(., light) %>%
+  full_join(., stageHtHOBO) %>%
+  full_join(., stageHt) %>%
+  full_join(., WaterTemp) %>%
+  full_join(., AirPress)
+
+# Visualize - what are the differences between DO, stage height?
+# Assuming here that Adj concentration must be adjusted for some calibration factor
+ggplot(data = data, aes(x = valuedatetime)) +
+  geom_point(aes(y = `DOAdjConc_mg/L`, color = "Adj conc")) +
+  geom_point(aes(y = `DOConcentration_mg/L`, color = "Conc"))
+
+# Look at water temp
+ggplot(data = data, aes(x = valuedatetime)) +
+  geom_point(aes(y = Watertemperature_C))
+
+# Look at light - see if time is in local or UST
+ggplot(data = data, aes(x = valuedatetime)) +
+  geom_point(aes(y = LightIntensity_Lux)) +
+  scale_x_datetime(limits = c(ymd_hms("2019-01-01 00:00:00"),
+                              ymd_hms("2019-01-02 00:00:00")),
+                   breaks = "2 hours", date_labels = "%H:%M") # time is local!
+
+#### Cleanup, unit conversions ####
+dataQS <- 
+  data %>%
+  transmute(DateTime_local = force_tz(valuedatetime, tz = "America/Puerto_Rico"), 
+            DateTime_UTC = with_tz(DateTime_local, tz = "UTC"),
+            Discharge_m3s = discharge_cfs/35.315,
+            Level_m = StageHeight_CM / 100,
+            WaterTemp_C = Watertemperature_C, 
+            DO_mgL = `DOAdjConc_mg/L`,
+            Light_Lux = LightIntensity_Lux, AirPress_kPa = Barometricpressure_kPa,
+            site = sitename)
+# Pivot from wide to long format and save as csv in raw data folder
+dataQS <- 
+  dataQS %>%
+  pivot_longer(cols = Discharge_m3s:AirPress_kPa, names_to = "variable", 
+               values_to = "value") %>%
+  relocate(site)
+write_csv(dataQS, paste0(path, "MetabolismParameters_Raw_Sonadora_2019-01-01_2019-12-31.csv"))
+
+ggplot(data = data, aes(x = valuedatetime)) +
+  geom_point(aes(y = discharge_cfs)) +
+  scale_x_datetime(limits = c(ymd_hms("2019-03-01 00:00:00"),
+                              ymd_hms("2019-03-09 00:00:00"))) +
+  coord_cartesian(ylim = c(0, 25))
+
+#### Process data from raw to cleaned ##########################################
+# Load data
+QS_data <- 
+  read_csv(paste0(path, "MetabolismParameters_Raw_Sonadora_2019-01-01_2019-12-31.csv"))
+QS_data <- 
+  QS_data %>%
+  pivot_wider(names_from = variable, values_from = value) %>%
+  mutate(referenceLatitude = 18.3213, referenceLongitude = -65.8171,
+         # Convert from kPa to mBar
+         AirPress_mbar = AirPress_kPa * 10,
+         DateTime_local = with_tz(DateTime_local, tz = "America/Puerto_Rico")) %>%
+  rename(SiteName = site)
+
+#### Create equal time breaks from start to end of data series ##############
+# Create vector containing all 15 min chunks from start to end time of series
+# Round start and end to nearest 15 min chunk, in case sensor log times
+# are not every 15 minutes apart
+
+#### Calculate solar time ############
+QS_data$solarTime <- 
+  streamMetabolizer::convert_UTC_to_solartime(QS_data$DateTime_UTC, 
+                                              longitude = QS_data$referenceLongitude)
+
+### Filter to time period of interest
+QS_data <- 
+  QS_data %>%
+  select(solarTime, Discharge_m3s, WaterTemp_C, DO_mgL, Light_Lux, AirPress_mbar,
+         referenceLatitude, referenceLongitude) %>%
+  mutate(solarTime = round_date(solarTime, unit = "minute")) %>%
+  filter(solarTime >= ymd_hms("2019-03-05 00:00:00") &
+         solarTime <= ymd_hms("2019-03-05 23:59:00"))
+
+# Function to merge equal breaks with dataframes
+equalbreaks <- function(dataframe){
+  seq_start <- round_date(min(dataframe$solarTime), unit = "15 minute")
+  seq_end <- round_date(max(dataframe$solarTime), unit = "15 minute")
+  sequence <- data.frame(solarTime = seq(seq_start, seq_end, by = "15 min"))
+  # Join sequence of datetimes with raw data at each station
+  dataframe <- dplyr::full_join(dataframe, sequence)
+  # Arrange by date
+  dataframe <- dplyr::arrange(dataframe, solarTime)
+  return(dataframe)
+}
+# Run function
+QS <- 
+  equalbreaks(QS_data)
+
+#### Fill NA values ##########################################################
+# List numeric columns in dataframe
+sensCols <- c("DO_mgL", "WaterTemp_C", "Light_Lux","AirPress_mbar")
+
+for(i in seq_along(sensCols)){
+  # Impute gaps using linear interpolation because they are so small
+  imp <- imputeTS::na_interpolation(QS %>% dplyr::select(sensCols[i])) 
+  # Set values in dataframe to imputed values
+  QS[sensCols[i]] <- imp
+}
+
+#### filter to only 15-min times and organize dataset ##########################
+cleanData <- 
+  QS %>%
+  filter(minute(solarTime) %in% c(0, 15, 30, 45)) %>%
+  relocate(referenceLatitude, referenceLongitude, solarTime, .before = solarTime)
+
+#### Calculate dissolved oxygen saturation from water temp, air pressure, and DO
+cleanData$DOsat_mgL <- 
+  fluxr::o2sat(temp = cleanData$WaterTemp_C, 
+               pressure =  cleanData$AirPress_mbar / 1000,
+               pressUnits = "bar", outUnits = "mg/L")
+
+#### Format cleanData for metabolism modeling ################################
+formattedData <- 
+  cleanData %>%
+  rename(any_of(c(solar.time = "solarTime", 
+                  DO.obs = "DO_mgL", DO.sat = "DOsat_mgL",
+                  discharge = "Discharge_m3s", temp.water = "WaterTemp_C",
+                  light.data = "Light_Lux"))) %>%
+  select(any_of(c("solar.time", "DO.obs", "DO.sat", "depth", 
+                  "discharge", "temp.water", "light.data")))
+
+
+# calculate light
+lat <- unique(na.omit(QS$referenceLatitude))
+long <- unique(na.omit(QS$referenceLongitude))
+formattedData$light.calc <- 
+  calc_light(formattedData$solar.time, latitude = lat, longitude = long)
+
+#### Add measured depth
+depth_cm <- as.numeric(na.omit(CAREER_sites$TransectDepth_Avg_cm[CAREER_sites$StreamPULSE_SiteID == "PR_QS"]))
+formattedData$depth <- depth_cm / 100
+
+out <- list(data = formattedData)
+
+#### Save cleaned output ######################################################
+# Save cleaned data
+write_rds(out, 
+          "data/metabolism/parameters/clean/parameters_clean_PR_QS_2019-03-05.rds")
+```
+
+```{r plot cleaned data}
+plot_params_sp <- function(dataset, sitecode){
+  sampdate <- unique(date(dataset$solar.time))
+  a <- 
+    plot_params(dataset, "DO.obs") + 
+    labs(tag = "a")
+  b <- plot_params(dataset, "DO.sat") + labs(tag = "c")
+  c <- plot_params(dataset, "temp.water") + labs(tag = "d")
+  d <- plot_params(dataset, "light") + labs(tag = "e")
+  e <- plot_params(dataset, "depth") + labs(tag = "f")
+  if("discharge" %in% names(dataset)){
+    f <- plot_params(dataset, "discharge") +labs(tag = "g")
+    grid.arrange(a,b,c,d,e,f,
+                 top = paste0(sitecode, " ", sampdate, ", clean SP data"))
+  } else{
+    grid.arrange(a,b,c,d,e,
+                 top = paste0(sitecode, " ", sampdate, ", clean SP data"))
+  }
+}
+load_clean_sp <- function(siteNo){
+  sitecode <- StreamPULSE_sites$StreamPULSE_SiteID[siteNo]
+  sampdate <- StreamPULSE_sites$date[siteNo]
+  
+  direc <- "data/metabolism/parameters/clean/"
+  fileName <- paste0(direc, "parameters_clean_", sitecode, "_", sampdate, 
+                     ".rds")
+  data <- read_rds(file = fileName)
+  
+  # Return file
+  return(data)
+}
+plot_save_clean_sp <- function(siteNo, dataset){
+  sitecode <- StreamPULSE_sites$StreamPULSE_SiteID[siteNo]
+  sampdate <- StreamPULSE_sites$date[siteNo]
+  
+  cleanplot <- plot_params_sp(dataset$data, sitecode = sitecode)
+  
+  # Save plot
+  direc <- "data/metabolism/parameters/clean/"
+  ggsave(paste0(direc, "parameters_clean_", sitecode, "_", sampdate, ".png"), 
+         cleanplot, width = 8, height = 9, units = "in", dpi = 600)
+}
+
+# 1. NC_NHC
+nhc <- load_clean_sp(siteNo = 1)
+plot_save_clean_sp(siteNo = 1, nhc)
+
+# 2. NC_ENO
+eno <- load_clean_sp(siteNo = 2)
+plot_save_clean_sp(siteNo = 2, eno)
+
+# 3. WI_BEC
+bec <- load_clean_sp(siteNo = 3)
+plot_save_clean_sp(siteNo = 3, bec)
+
+# 4. WI_BRW
+brw <- load_clean_sp(siteNo = 4)
+plot_save_clean_sp(siteNo = 4, brw)
+
+# 5. NHC
+nhc <- load_clean_sp(siteNo = 5)
+plot_save_clean_sp(siteNo = 5, nhc)
+
+# 6. iche
+iche <- load_clean_sp(siteNo = 6)
+plot_save_clean_sp(siteNo = 6, iche)
+
+# 7. Pilg Jun 2018
+pilg_186 <- load_clean_sp(siteNo = 7)
+plot_save_clean_sp(siteNo = 7, pilg_186)
+
+# 8. Pilg July 2018
+pilg_187 <- load_clean_sp(siteNo = 8)
+plot_save_clean_sp(siteNo = 8, pilg_187)
+
+# 12. QP
+qp <- load_clean_sp(siteNo = 12)
+plot_save_clean_sp(siteNo = 12, qp)
+
+# 13. QS
+qs <- load_clean_sp(siteNo = 13)
+qs$light <- qs$light.calc
+plot_params_sp(qs, sitecode = "PR_QS")
+direc <- "data/metabolism/parameters/clean/"
+ggsave(paste0(direc, "parameters_clean_", "PR_QS", "_", "2019-03-05", ".png"), 
+       cleanplot, width = 8, height = 9, units = "in", dpi = 600)
+
+# 14. WB
+wb <- load_clean_sp(siteNo = 14)
+plot_save_clean_sp(siteNo = 14, wb)
+
+# 15. Pilgrim June 2019
+pilg_196 <- load_clean_sp(siteNo = 15)
+plot_save_clean_sp(siteNo = 15, pilg_196)
+```
+
+```{r model streampulse}
+modelyfunc_sp <- function(siteNo){
+  sitecode <- StreamPULSE_sites$StreamPULSE_SiteID[siteNo]
+  sampdate <- StreamPULSE_sites$date[siteNo]
+  type_DO <- "DO-data"
+  type_light <- "light-calc"
+  
+  # Load clean data ############################################################
+  direc <- "data/metabolism/parameters/clean/"
+  fileName <- paste0(direc, "parameters_clean_", sitecode, "_", sampdate, 
+                     ".rds")
+  data <- read_rds(file = fileName)
+
+  params <- 
+    data$data %>%
+    mutate(solar.time = round_date(solar.time, unit = "minute")) %>%
+    select(-any_of("discharge"))
+  
+  if("light.calc" %in% names(params)){
+    params <- 
+      params %>%
+      rename(light = light.calc) %>%
+      select(-any_of("light.data"))
+  }
+  
+  # Very annoying error message - I can't get streammetabolizer to skip the 
+  # full day check. we have 15 min less than a full day. copy the first entry
+  # and place that as time 00
+  #slice <- params[1,]
+  #slice$solar.time <- min(params$solar.time) - minutes(15)
+  #params <- full_join(params, slice) %>% arrange(solar.time)
+  
+  # Set model specs ############################################################
+  modname <- "b_np_oipi_tr_plrckm.stan"
+  model_specs <- specs(model_name = modname, 
+                       day_start = -1.5, day_end = 30,
+                       day_tests = "even_timesteps",
+                       verbose = TRUE, 
+                       n_cores = 8, n_chains = 8, 
+                       burnin_steps = 500, saved_steps = 2000
+                       ) 
+  
+  # Run model ##################################################################
+  results <- 
+    streamMetabolizer::metab(specs = model_specs, data = params)
+  
+  # Save
+  direc <- "data/metabolism/models/"
+  modtitle <- str_extract(modname, "(.+)\\.stan", group = 1)
+
+  modName <- paste0(direc, modtitle, "_", type_DO, "_", type_light, "_",
+                  sitecode, "_", sampdate, ".rds")
+  write_rds(results, file = modName, compress = "gz")
+  
+  return(results)
+}
+
+# 1. NC_NHC
+results <- modelyfunc_sp(siteNo = 1)
+
+# 2. NC_Eno
+results <- modelyfunc_sp(siteNo = 2)
+
+# 3. WI_BEC
+results <- modelyfunc_sp(siteNo = 3)
+
+# 4. WI_BRW
+results <- modelyfunc_sp(siteNo = 4)
+
+# 5. NHC
+results <- modelyfunc_sp(siteNo = 5)
+
+# 6. iche
+results <- modelyfunc_sp(siteNo = 6)
+
+# 7. Pilg Jun 2018
+results <- modelyfunc_sp(siteNo = 7)
+
+# 8. Pilg July 2018
+results <- modelyfunc_sp(siteNo = 8)
+
+# 9. Hubbard
+# No DO data, can't model
+
+# 10. whb
+results <- modelyfunc_sp(siteNo = 10)
+
+# 11. DCF
+results <- modelyfunc_sp(siteNo = 11)
+
+# 12. QP
+results <- modelyfunc_sp(siteNo = 12)
+
+# 13. QS
+results <- modelyfunc_sp(siteNo = 13)
+
+# 14. WB
+results <- modelyfunc_sp(siteNo = 14)
+
+# 15. PILG 2019 Jun
+results <- modelyfunc_sp(siteNo = 15)
+
+# 16. PILG 2019 Sep
+# no data
+
+# Inspect ######################################################################
+get_fit(results)$warnings
+get_fit(results)$errors
+
+traceplot(results@mcmc, 
+          pars = c("GPP_daily", "ER_daily", "K600_daily", "err_obs_iid_sigma"),
+          inc_warmup = TRUE)
+rstan::plot(results@mcmc, pars = c("GPP_daily", "ER_daily", "K600_daily"))
+
+
+results@fit[["daily"]]$DO_R2_mean
+
+results@fit[["overall"]]$err_proc_iid_sigma_Rhat
+results@fit[["daily"]]$K600_daily_Rhat
+results@fit[["daily"]]$GPP_daily_Rhat
+results@fit[["daily"]]$ER_daily_Rhat
+
+get_params(results)
+plot_DO_preds(results)
+```
+
+```{r UT_1300E and UT_LKF}
+# Helper functions
+## Transform datetime
+timeAdjust <- function(data){
+  data <- data %>%
+    mutate(LocalDateTime = mdy_hm(LocalDateTime),
+           DateTimeUTC = mdy_hm(DateTimeUTC)) %>% 
+    select(-UTCOffset)
+  return(data)
+}
+
+# Load in iUtah site data
+## 1300 E Red Butte Creek
+RB_1300E <- read_csv("data/metabolism/parameters/raw/rawData_iUtah/RB_1300E_A_SourceID_1_QC_0_Year_2017.csv",
+                     na = "-9999")
+## Lower Knowton Fork Red Butte Creek
+RB_LKF <- read_csv("data/metabolism/parameters/raw/rawData_iUtah/RB_LKF_A_SourceID_1_QC_0_Year_2017.csv",
+                   na = "-9999")
+
+# Load in PAR
+RB_PAR <- read_csv("data/metabolism/parameters/raw/rawData_iUtah/RB_ARBR_C_SourceID_1_QC_0_Year_2017.csv",
+                   na = "-9999")
+
+# Transform datetime
+RB_1300E <- timeAdjust(RB_1300E)
+RB_LKF <- timeAdjust(RB_LKF)
+RB_PAR <- timeAdjust(RB_PAR)
+
+# Merge PAR with site data
+RB_1300E <- full_join(RB_1300E, RB_PAR)
+RB_LKF <- full_join(RB_LKF, RB_PAR)
+
+# Reformat dataframes and select data necessary for metabolism modeling
+formatUtah <- function(data, sitecode, lat, long, sampdate){
+  data <- 
+    data %>%
+    # Select only the columns relevant to metabolism
+    select(any_of(c("LocalDateTime", "DateTimeUTC", "ODO", "ODO_Sat", 
+                  "WaterTemp_EXO", "PARIn_Avg", "Stage", "Stage-1", 
+                  "Discharge_cms"))) %>%
+    # Add columns for site name, reference latitude, and reference longitude
+    mutate(referenceLatitude = lat, 
+           referenceLongitude = long) %>%
+    # Rename columns to match neonMetabolizer formatting
+    rename(any_of(c(DateTime_UTC = "DateTimeUTC", DO_mgL = "ODO", DOsat_pct = "ODO_Sat", 
+                  WaterTemp_C = "WaterTemp_EXO", Light_PAR = "PARIn_Avg", 
+                  Stage_m = "Stage", Stage_m = "Stage-1", 
+                  Discharge_m3s = "Discharge_cms"))) %>%
+     mutate(solar.time = 
+           streamMetabolizer::convert_UTC_to_solartime(DateTime_UTC,
+                                                       longitude = referenceLongitude),
+         solar.time = round_date(solar.time, unit = "minute"),
+         light = calc_light(solar.time, 
+                            latitude = referenceLatitude, 
+                            longitude = referenceLongitude),
+         DO.sat = (DO_mgL * 100) / DOsat_pct) %>%
+    filter(solar.time >= ymd_hms(paste0(sampdate, " 00:00:00"), tz = "UTC") &
+               solar.time <= ymd_hms(paste0(sampdate, " 23:59:00"), tz = "UTC")) %>%
+    rename(DO.obs = DO_mgL, temp.water = WaterTemp_C, light.data = Light_PAR) %>%
+    select(solar.time, DO.obs, DO.sat, temp.water, light, light.data, Stage_m)
+  
+  # Save as cleaned df
+  direc <- "data/metabolism/parameters/clean/"
+  
+  fileName <- paste0(direc, "parameters_clean_", 
+                     sitecode, "_", sampdate, 
+                     ".rds")
+  write_rds(data, file = fileName)
+  
+  return(data)
+}
+
+# Run reformatting
+RB_1300Ec <- formatUtah(RB_1300E, sitecode = "UT_1300E", 
+                       lat = 40.7450, long = -111.8544,
+                       sampdate = "2017-07-19")
+RB_LKFc <- formatUtah(RB_LKF, sitecode = "UT_LKF",
+           lat = 40.8056, long = -111.7655, sampdate = "2017-07-18")
+
+### NOTE: add field measured discharge to both locations
+RB_1300Ec$depth <- 
+  CAREER_sites$TransectDepth_Avg_cm[CAREER_sites$SiteName == 
+                                      "1300 E Red Butte Creek"] / 100
+RB_LKFc$depth <- 
+  CAREER_sites$TransectDepth_Avg_cm[CAREER_sites$SiteName == 
+                                    "Lower Knowton Fork Red Butte Creek"] / 100
+
+# Save cleaned data
+write_rds(RB_1300Ec, "data/metabolism/parameters/clean/parameters_clean_UT_1300E_2017-07-19.rds")
+write_rds(RB_LKFc, "data/metabolism/parameters/clean/parameters_clean_UT_LKF_2017-07-18.rds")
+```
+
+```{r MT_Blaine}
+# Load in dataset
+blaine <- read_csv("data/metabolism/parameters/raw/rawData_BlaineCreek/blaine_65_oxy.csv")
+
+# Refomat time add lat longs
+blaine <- 
+  blaine %>%
+  mutate(SiteName = "BlaineCreek", referenceLatitude = 48.1885, 
+         referenceLongitude = -114.1327, DateTime_UTC = as_datetime(unixtime),
+         LocalDateTime = with_tz(DateTime_UTC, tzone = "US/Mountain"),
+         .before = unixtime) %>%
+  rename(DO_mgL = oxy, WaterTemp_C = temp) %>%
+  select(-unixtime)
+
+# Load air pressure data
+airpress <- 
+  read_csv("data/metabolism/parameters/raw/rawData_BlaineCreek/Kalispell_AirPress.csv")
+
+# We need air pressure at altitude, we have air pressure at sea level:
+# P = P0 * e^(-gM(h - h0) / RT)
+#   where:
+#       P = air pressure at altitude h (in Pa)
+#       P0 = air pressure at reference altitude (sea level)
+#       h = altitude (in m, here = 901 m)
+#       h0 = altitude at sea level (= 0 m)
+#       T = air temperature at altitude h (units of K)
+h <- 901 #m
+g <- 9.81 #m/s2, force of gravity
+M <-  0.0289644 #kg/mol, molar mass of air
+R <- 8.31432 # N m/mol K, gas constant
+
+# Convert units and run equation
+airpress <- 
+  airpress %>%
+  mutate(LocalDateTime = ymd_hms(datetime, tz = "America/Denver"),
+         DateTime_UTC = with_tz(LocalDateTime, tzone = "UTC"),
+         sealevelpressure = sealevelpressure * 100, # Convert from mBar to Pa
+         temp = temp + 273.15, # Convert from C to K
+         AirPress_Pa = sealevelpressure * exp((-g*M*h)/(R*temp)), #plug into equation
+         AirPress_mBar = AirPress_Pa / 100) #convert back to mBar
+
+# Looks like it makes sense, let's drop sealevelpressure, lat/long, before merge
+# Filter to same time range as blaine
+airpress <- 
+  airpress %>%
+  select(-c(sealevelpressure, latitude, longitude, datetime, temp, AirPress_Pa)) %>%
+  filter(LocalDateTime >= first(blaine$LocalDateTime) & 
+           LocalDateTime <= last(blaine$LocalDateTime))
+
+# Merge
+blaine <- 
+  full_join(blaine, airpress) %>%
+  arrange(LocalDateTime)
+
+#### Create equal time breaks from start to end of data series ##############
+# Create vector containing all 15 min chunks from start to end time of series
+# Round start and end to nearest 15 min chunk, in case sensor log times
+# are not every 15 minutes apart
+seq_start <- round_date(first(blaine$DateTime_UTC), unit = "15 minute")
+seq_end <- round_date(last(blaine$DateTime_UTC), unit = "15 minute")
+sequence <- data.frame(DateTime_UTC = seq(seq_start, seq_end, by = "15 min"),
+                       LocalDateTime = seq(with_tz(seq_start, tz = "America/Denver"), 
+                                           with_tz(seq_end, tz = "America/Denver"), 
+                                           by = "15 min"))
+
+# Function to merge equal breaks with dataframes
+equalbreaks <- function(dataframe){
+  # Join sequence of datetimes with raw data at each station
+  dataframe <- dplyr::full_join(dataframe, sequence)
+  # Arrange by date
+  dataframe <- dplyr::arrange(dataframe, DateTime_UTC)
+  return(dataframe)
+}
+# Run function
+blaine <- equalbreaks(blaine)
+
+# First air press, DO, water temp entries are empty - fix (will be an issue for NA interp)
+blaine$AirPress_mBar[1] <- first(na.omit(blaine$AirPress_mBar))
+blaine$WaterTemp_C[1] <- first(na.omit(blaine$WaterTemp_C))
+blaine$DO_mgL[1] <- first(na.omit(blaine$DO_mgL))
+
+# Fill NA in character cols
+blaine$SiteName <- unique(na.omit(blaine$SiteName))
+blaine$referenceLatitude <- unique(na.omit(blaine$referenceLatitude))
+blaine$referenceLongitude<- unique(na.omit(blaine$referenceLongitude))
+
+#### Fill NA values ##########################################################
+# List numeric columns in dataframe
+sensCols <- c("DO_mgL", "WaterTemp_C", "AirPress_mBar")
+
+for(i in seq_along(sensCols)){
+  # Impute gaps using linear interpolation because they are so small
+  imp <- imputeTS::na_interpolation(blaine %>% dplyr::select(sensCols[i])) 
+  # Set values in dataframe to imputed values
+  blaine[sensCols[i]] <- imp
+}
+
+#### Calculate dissolved oxygen saturation from water temp, air pressure, and DO
+blaine$DOsat_mgL <- streamMetabolizer::calc_DO_sat(blaine$WaterTemp_C, blaine$AirPress_mBar)
+
+#### Add depth and discharge info ##############################################
+# Depth at sensor measured by Bob Hall
+blaine$Depth_m <- 0.28 #m
+
+# Save copy of raw data, this will be returned to user in output
+rawData <- blaine
+
+#### Calculate solar time ############
+blaine$solarTime <- 
+  streamMetabolizer::convert_UTC_to_solartime(blaine$DateTime_UTC, 
+                                              longitude = blaine$referenceLongitude)
+
+#### Bob estimates PAR based on latitude #######################################
+blaine$Light_PAR <- streamMetabolizer::calc_light(blaine$solarTime, 
+                                              latitude = blaine$referenceLatitude, 
+                                              longitude = blaine$referenceLongitude)
+
+# 1 second discrepancy between solar.time timesteps is throwing things off
+second(blaine$solarTime) <- 0
+
+#### filter to only 15-min times and organize dataset ##########################
+cleanData <- blaine %>%
+  filter(minute(DateTime_UTC) %in% c(0, 15, 30, 45)) %>%
+  relocate(solarTime, .after = DateTime_UTC) %>%
+  relocate(DOsat_mgL, .after = DOsat_mgL)
+
+#### Format cleanData for metabolism modeling ################################
+formattedData <- blaine %>%
+  # Preserve only data collected on the 15-min intervals
+  filter(minute(DateTime_UTC) %in% c(0, 15, 30, 45)) %>%
+  rename(any_of(c(solar.time = "solarTime", DO.obs = "DO_mgL", DO.sat = "DOsat_mgL",
+                  depth = "Depth_m", discharge = "Discharge_m3s", temp.water = "WaterTemp_C",
+                  light = "Light_PAR"))) %>%
+  select(any_of(c("solar.time", "DO.obs", "DO.sat", "depth", "discharge", "temp.water", "light")))
+
+#### Return to user #########################################################
+output <- list(data = formattedData,
+                cleanData = cleanData,
+                rawData = rawData)
+
+#### Save cleaned output ######################################################
+# Save cleaned data
+write_rds(output, "data/metabolism/parameters/clean/MetabolismParameters_Clean_Blaine-MT_2019-08-09_2019-08-16.rds")
+blaine <- read_rds("data/metabolism/parameters/clean/MetabolismParameters_Clean_Blaine-MT_2019-08-09_2019-08-16.rds")
+
+data <- 
+  blaine$data %>%
+  filter(solar.time >= ymd_hms("2019-08-10 00:00:00") &
+           solar.time <= ymd_hms("2019-08-10 23:59:00"))
+
+write_rds(data, "data/metabolism/parameters/clean/parameters_clean_MT_Blaine_2019-08-10.rds")
+```
+
+```{r ID_South Fork Mink Creek}
+# Load in dataset
+## South Fork Mink Creek, ID
+SFMC <- read_csv("data/metabolism/parameters/raw/ID_SFMC/YSIFile_SouthFork.csv")
+
+# Refomat time add lat longs
+SFMC <- 
+  SFMC %>%
+  mutate(SiteName = "SouthForkMinkCreek", 
+         referenceLatitude = 42.7074, 
+         referenceLongitude = -112.4228, # I THINK this time data was recorded 
+         # in Michigan time, check it out when dataframe is merged with PAR
+         #DateTime_UTC = mdy_hms(paste(date, time), tz = "UTC"),
+         #DateTime_local = with_tz(DateTime_UTC , tz = "America/Denver"),
+        DateTime_local = mdy_hms(paste(date, time), tz = "America/Denver"),
+        DateTime_UTC = with_tz(DateTime_local, tz = "UTC")) %>%
+  # Rename columns to match neonMetabolizer formatting
+  rename(any_of(c(DO_mgL = "ODO_mgL", DOsat_pct = "ODOsat_perc"))) %>%
+  select(-c(date, time))
+
+# See SouthForkMinkCreek_FieldDischarge.xlsx for calculations
+SFMC$Discharge_m3s <- 0.023716 # Measured on 27-July-2017
+SFMC$Depth_m <- 0.112053571 # Average of all measured transect depths (25 & 27 July)
+
+sfmc <- 
+  SFMC %>%
+  mutate(solar.time = 
+           convert_UTC_to_solartime(DateTime_UTC,
+                                    longitude = referenceLongitude),
+         solar.time = round_date(solar.time, unit = "minute")) %>%
+  filter(solar.time >= ymd_hms("2017-07-27 00:00:00") &
+           solar.time <= ymd_hms("2017-07-27 23:59:00")) %>%
+  mutate(light = calc_light(solar.time, 
+                            latitude = referenceLatitude, 
+                            longitude = referenceLongitude),
+         DOsat_mgL = DO_mgL / (DOsat_pct/100)) %>%
+  rename(temp.water = WaterTemp_C,
+         DO.obs = DO_mgL,
+         DO.sat = DOsat_mgL,
+         discharge = Discharge_m3s,
+         depth = Depth_m) %>%
+  select(solar.time, temp.water, DO.obs, DO.sat, discharge, depth, light)
+
+cleanplot <- plot_params_sp(clean, sitecode = "ID_SFMC")
+
+direc <- "data/metabolism/parameters/clean/"
+ggsave(paste0(direc, "parameters_clean_ID_SFMC_2017-07-27.png"), 
+       cleanplot, width = 8, height = 9, units = "in", dpi = 600)
+write_rds(sfmc, file = paste0(direc, "parameters_clean_ID_SFMC_2017-07-27.rds"))
+```
+
+```{r AK_poker}
+poker <- read_csv("data/metabolism/parameters/raw/Poker Creek/PokerCreek2019_with_modeled_light.csv")
+
+poker <- 
+  poker %>%
+  mutate(solar.time = mdy_hm(solar.time)) %>%
+  filter(solar.time >= ymd_hms("2019-07-10 00:00:00") &
+           solar.time <= ymd_hms("2019-07-10 23:59:00"))
+
+cleanplot <- plot_params_sp(poker, sitecode = "AK_Poker")
+
+direc <- "data/metabolism/parameters/clean/"
+ggsave(paste0(direc, "parameters_clean_AK_Poker_2019-07-10.png"), 
+       cleanplot, width = 8, height = 9, units = "in", dpi = 600)
+write_rds(poker, file = paste0(direc, "parameters_clean_AK_Poker_2019-07-10.rds"))
+```
+
+```{r model others}
+modelloners <- function(sitecode, sampdate){
+  type_DO <- "DO-data"
+  type_light <- "light-calc"
+  
+  # Load clean data ############################################################
+  direc <- "data/metabolism/parameters/clean/"
+  fileName <- paste0(direc, "parameters_clean_", sitecode, "_", sampdate, 
+                     ".rds")
+  data <- read_rds(file = fileName)
+  
+  params <- 
+    data %>%
+    select(-any_of(c("discharge", "Stage_m", "light.data")))
+  
+  # Set model specs ############################################################
+  modname <- "b_np_oipi_tr_plrckm.stan"
+  model_specs <- specs(model_name = modname, 
+                       day_start = -1.5, day_end = 30,
+                       day_tests = "even_timesteps",
+                       verbose = TRUE, 
+                       n_cores = 8, n_chains = 8, 
+                       burnin_steps = 500, saved_steps = 2000
+                       ) 
+  
+  # Run model ##################################################################
+  results <- 
+    streamMetabolizer::metab(specs = model_specs, data = params)
+  
+  # Save
+  direc <- "data/metabolism/models/"
+  modtitle <- str_extract(modname, "(.+)\\.stan", group = 1)
+
+  modName <- paste0(direc, modtitle, "_", type_DO, "_", type_light, "_",
+                  sitecode, "_", sampdate, ".rds")
+  write_rds(results, file = modName, compress = "gz")
+  
+  return(results)
+}
+
+results <- modelloners(sitecode = "UT_LKF", sampdate = "2017-07-18")
+
+results <- modelloners(sitecode = "UT_1300E", sampdate = "2017-07-19")
+
+results <- modelloners(sitecode = "MT_Blaine", sampdate = "2019-08-10")
+
+results <- modelloners(sitecode = "ID_SFMC", sampdate = "2017-07-25")
+
+results <- modelloners(sitecode = "AK_Poker", sampdate = "2019-07-10")
+
+results <- modelloners(sitecode = "ID_SFMC", sampdate = "2017-07-27")
+
+# Inspect ######################################################################
+get_fit(results)$warnings
+get_fit(results)$errors
+
+traceplot(results@mcmc, 
+          pars = c("GPP_daily", "ER_daily", "K600_daily", "err_obs_iid_sigma"),
+          inc_warmup = TRUE)
+rstan::plot(results@mcmc, pars = c("GPP_daily", "ER_daily", "K600_daily"))
+
+results@fit[["daily"]]$DO_R2_mean
+
+results@fit[["overall"]]$err_proc_iid_sigma_Rhat
+results@fit[["daily"]]$K600_daily_Rhat
+results@fit[["daily"]]$GPP_daily_Rhat
+results@fit[["daily"]]$ER_daily_Rhat
+
+get_params(results)
+plot_DO_preds(results)
+```
+
+```{r join all single station results}
+# List single-station files in folder
+lst <- list.files(pattern = "b_np_oipi_tr_plrckm.+.rds",
+                  path = "data/metabolism/models", 
+                  full.names = TRUE)
+
+# Initalize empty lists
+dailylist <- vector(mode = "list", length = length(lst))
+dolist <- vector(mode = "list", length = length(lst))
+
+for(i in seq_along(lst)){
+  # Get file name
+  filename <- lst[i]
+  
+  # Load data
+  results <- read_rds(lst[i])
+  
+  # Extract model information from file name
+  pttrn <- "b_np_oipi_tr_plrckm_DO-data_light-calc_(.+)_(\\d\\d\\d\\d-\\d\\d-\\d\\d).rds"
+  sitename <- str_match(filename, pttrn)[,2]
+  sitedate <- str_match(filename, pttrn)[,3]
+  
+  # Get model predictions: GPP, ER, K600
+  preds_daily <- results@fit$daily
+  
+  # Predict DO from fitted model
+  preds_DO <- streamMetabolizer::predict_DO(results)
+  
+  # Add site name and site date to daily and DO data
+  preds_daily$site <- sitename
+  preds_DO$site <- sitename
+  
+  # Convert dates to character so that you can matrix them later
+  preds_daily$date <- str_match(filename, pttrn)[,3]
+  preds_DO$date <- as.character(preds_DO$date)
+  
+  # Add daily and DO data to list
+  dailylist[[i]] <- preds_daily
+  dolist[[i]] <- preds_DO
+}
+
+# Load all CAREER site information
+CAREER_sites <- read_csv(file = "data/CAREER_SiteAttributes.csv")
+CAREER_sites$date <- mdy(CAREER_sites$date)
+
+# Unlist daily predictions
+preds_daily <- 
+  bind_rows(dailylist) %>%
+  relocate(site, .before = date) %>%
+  mutate(date = as.Date(date))
+# Add site names to df
+sitenames <- select(CAREER_sites, 
+                    date, SiteName)
+preds_daily <- 
+  full_join(sitenames, preds_daily) %>%
+  arrange(date) %>%
+  select(-site)
+
+# Add notes about modeling, fit
+preds_daily$notes <- NA
+# Arikaree 2017: no DO data
+preds_daily$notes[preds_daily$SiteName == "Arikaree River" &
+                    preds_daily$date == "2017-07-11"] <-
+  "No dissolved oxygen sensor data"
+# Alexander creek: no data available
+preds_daily$notes[preds_daily$SiteName == "Alexander Springs"] <-
+  "No data available"
+# Hubbard brook: no data available
+preds_daily$notes[preds_daily$SiteName == "Hubbard Brook"] <-
+  "No data available"
+# Kings creek 2018
+preds_daily$notes[preds_daily$SiteName == "Kings Creek" &
+                    preds_daily$date == "2018-06-13"] <-
+  "Model for 2018-06-12, as 2018-06-13 didn't have full day of data"
+# Kings creek 2019
+preds_daily$notes[preds_daily$SiteName == "Kings Creek" &
+                    preds_daily$date == "2019-05-10"] <-
+  "No dissolved oxygen, water temperature, or discharge data"
+# Sycamore creek: DO sensors were out of water
+preds_daily$notes[preds_daily$SiteName == "Sycamore Creek"] <-
+  "Dissolved oxygen sensors were out of water"
+preds_daily[preds_daily$SiteName == "Sycamore Creek", 3:65] <- NA
+# Mcrae creek
+preds_daily$notes[preds_daily$SiteName == "McRae Creek"] <-
+  "No dissolved oxygen, water temperature, or discharge data"
+# Pilgrim @ 2019-09-09
+preds_daily$notes[preds_daily$SiteName == "Pilgrim River" &
+                    preds_daily$date == "2019-09-09"] <-
+  "No dissolved oxygen, water temperature, or discharge data"
+
+# Unlist DO predictions
+preds_DO <- 
+  bind_rows(dolist) %>%
+  relocate(site, .before = date) %>%
+  mutate(date = as.Date(date))
+# Add site names to df
+preds_DO <- 
+  full_join(sitenames, preds_DO) %>%
+  arrange(date) %>%
+  select(-site)
+
+# Save as CSVs
+write_csv(preds_daily, file = "data/metabolism/metabolism-rates.csv")
+write_csv(preds_DO, file = "data/metabolism/metabolism-DO.csv")
+```
+
+```{r compile parameter data}
+# List parameter files in folder
+lst <- list.files(pattern = "parameters_clean.+rds",
+                  path = "data/metabolism/parameters/clean", 
+                  full.names = TRUE)
+
+# Initalize empty lists
+paramlist <- vector(mode = "list", length = length(lst))
+
+for(i in seq_along(lst)){
+  # Get file name
+  filename <- lst[i]
+  
+  # Load params
+  params <- read_rds(lst[i])
+  
+  # If parameters is a list, extract $data
+  if("list" %in% class(params)){
+    params <- as.data.frame(params$data)
+  }
+  
+  # If light column exists alone, rename as light.calc
+  if("light" %in% colnames(params)){
+    params <- rename(params, light.calc = light)
+    params$light.data <- NA
+  }
+  # If not two-station (no "location" column), add empty location column
+  if(!("location" %in% colnames(params))){
+    params$location <- NA
+  }
+  # If any smoothed data present, drop it, along with air pressure
+  params <- select(params, -contains(c(".smooth", "pressure", "siteID")))
+  
+  # Extract site information from file name
+  pttrn <- "parameters_clean_(.+)_(\\d\\d\\d\\d-\\d\\d-\\d\\d).rds"
+  sitename <- str_match(filename, pttrn)[,2]
+  sitedate <- str_match(filename, pttrn)[,3]
+  
+  # Add site name and site date to parameter data
+  params$site <- sitename
+  
+  # Convert dates to character so that you can matrix them later
+  params$date <- sitedate
+  
+  # Add daily and DO data to list
+  paramlist[[i]] <- params
+}
+
+# Load all CAREER site information
+CAREER_sites <- read_csv(file = "data/CAREER_SiteAttributes.csv")
+CAREER_sites$date <- mdy(CAREER_sites$date)
+
+# Unlist parameter data
+params_daily <- 
+  bind_rows(paramlist) %>%
+  relocate(site, date, location, .before = solar.time) %>%
+  select(-c(tt, depth.measured, Stage_m)) %>%
+  mutate(date = ymd(date))
+
+# Add site names to df
+sitenames <- select(CAREER_sites, 
+                    date, SiteName)
+params_daily <- 
+  full_join(sitenames, params_daily) %>%
+  select(-site)
+
+# Save file
+write_csv(params_daily, file = "./data/metabolism/metabolism-parameters.csv")
+```
