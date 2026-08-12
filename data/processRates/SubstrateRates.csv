@@ -1,333 +1,333 @@
-"SiteName","date","ProcessName","origilsubstrate","count","TempInitial_C","TempFinal_C","Flux_ugNm2hr_mean","Flux_ugNm2hr_sd"
-"1300 E Red Butte Creek",2017-07-19,"Nfixation_unamended","Rock",2,17.95,18.5,1.0917208445385,1.54392642467176
-"1300 E Red Butte Creek",2017-07-19,"Nfixation_unamended","Rock Flock",2,17.95,18.25,0.486884064609155,0.688558047473605
-"1300 E Red Butte Creek",2017-07-19,"Nfixation_unamended","Wood",2,18.1,18.6,0.45153011421682,0.6385600113453
-"1300 E Red Butte Creek",2017-07-19,"Denitrification_amended","Rock",2,18.05,18.75,48.3692610521605,15.9867056000188
-"1300 E Red Butte Creek",2017-07-19,"Denitrification_amended","Rock Flock",2,18.05,18.5,432.176007499384,611.189171137885
-"1300 E Red Butte Creek",2017-07-19,"Denitrification_amended","Wood",2,18.2,18.8,768.169214529336,645.948142958547
-"1300 E Red Butte Creek",2017-07-19,"Denitrification_unamended","Rock",2,18.15,18.45,103.783167298359,146.771562739375
-"1300 E Red Butte Creek",2017-07-19,"Denitrification_unamended","Rock Flock",2,18,18.3,610.440193397428,369.053730281808
-"1300 E Red Butte Creek",2017-07-19,"Denitrification_unamended","Wood",2,18.1,18.8,41.9842657047505,21.7980698151933
-"Alexander Springs",2018-06-02,"Nfixation_unamended","Macrophyte",4,25,26.125,131.898605069494,119.55694569407
-"Alexander Springs",2018-06-02,"Nfixation_unamended","Sediment",3,25,25.9,10.9474281332393,9.72401462023358
-"Alexander Springs",2018-06-02,"Nfixation_unamended","Wood",2,24.85,26.15,8.83251475548786,12.3412350908037
-"Alexander Springs",2018-06-02,"Denitrification_amended","Macrophyte",2,24.15,26.1,6641.626283807,9392.67796677348
-"Alexander Springs",2018-06-02,"Denitrification_amended","Sediment",3,24.9666666666667,26.1333333333333,231.157387712099,206.116607745233
-"Alexander Springs",2018-06-02,"Denitrification_amended","Wood",2,25.3,26.2,897.842458953156,491.08740258201
-"Alexander Springs",2018-06-02,"Denitrification_unamended","Macrophyte",2,25.6,25.65,11772.956090108,16649.4741718537
-"Alexander Springs",2018-06-02,"Denitrification_unamended","Sediment",3,24.8666666666667,26.1666666666667,518.787418771558,719.002224839683
-"Alexander Springs",2018-06-02,"Denitrification_unamended","Wood",2,24.5,26.05,661.589023950974,572.510758821757
-"Arikaree River",2017-07-11,"Nfixation_unamended","Macrophyte",4,29.375,30.75,462.175352587701,510.080942201785
-"Arikaree River",2017-07-11,"Nfixation_unamended","Sediment",5,29.96,31.26,62.0289788397501,64.0084880326964
-"Arikaree River",2017-07-11,"Denitrification_amended","Macrophyte",4,28.75,30.5,10640.1499698223,8260.01565964344
-"Arikaree River",2017-07-11,"Denitrification_amended","Sediment",5,29.06,30.92,15911.2727283353,4697.34578609398
-"Arikaree River",2017-07-11,"Denitrification_unamended","Macrophyte",4,28.95,30.875,317.886105480926,194.929979068086
-"Arikaree River",2017-07-11,"Denitrification_unamended","Sediment",5,29.4,30.96,1140.92803770977,955.117656352995
-"Arikaree River",2019-05-24,"Nfixation_unamended","Algae",3,17.6333333333333,21.3333333333333,376.844587657042,154.58295927517
-"Arikaree River",2019-05-24,"Nfixation_unamended","Sediment",3,20.3666666666667,23.3333333333333,11.5619918355037,9.85082527648464
-"Arikaree River",2019-05-24,"Denitrification_amended","Algae",3,15.7666666666667,21.4666666666667,1725.52729710215,1505.41863361373
-"Arikaree River",2019-05-24,"Denitrification_amended","Sediment",3,17.8333333333333,22.3,1816.52127444559,1381.69169495866
-"Arikaree River",2019-05-24,"Denitrification_unamended","Algae",3,16.6,20.8,779.382069131731,674.972203041294
-"Arikaree River",2019-05-24,"Denitrification_unamended","Sediment",3,20.1333333333333,22.9666666666667,280.091393520632,485.132524340504
-"Black Earth Creek",2017-08-08,"Nfixation_unamended","Macrophyte",2,15.7,18.55,0.214732857438405,0.303678119276521
-"Black Earth Creek",2017-08-08,"Nfixation_unamended","Rock",2,17.45,18.55,1.10429477829816,1.56170865232705
-"Black Earth Creek",2017-08-08,"Nfixation_unamended","Sediment",3,18,18.8,1.32490958856342,1.20780452850588
-"Black Earth Creek",2017-08-08,"Nfixation_unamended","Wood",2,19.4,18.7,2.158178045094,0.599049928003567
-"Black Earth Creek",2017-08-08,"Denitrification_amended","Macrophyte",3,15.6333333333333,18.1333333333333,39.3230712745571,34.5528082720404
-"Black Earth Creek",2017-08-08,"Denitrification_amended","Rock",2,17.55,18.05,567.419477630494,119.438666421458
-"Black Earth Creek",2017-08-08,"Denitrification_amended","Sediment",3,17.6666666666667,19.0666666666667,30640.967444754,7700.8637244035
-"Black Earth Creek",2017-08-08,"Denitrification_amended","Wood",2,18.85,18.7,3213.53689342366,4530.81079174952
-"Black Earth Creek",2017-08-08,"Denitrification_unamended","Macrophyte",2,15.9333333333333,18.35,0,0
-"Black Earth Creek",2017-08-08,"Denitrification_unamended","Sediment",3,17.6,18.9,14278.2736719541,1770.83733590752
-"Black Earth Creek",2017-08-08,"Denitrification_unamended","Wood",2,18.4,18.65,367.727755365495,520.045578898899
-"Blacktail Deer Creek",2019-07-30,"Nfixation_unamended","Rock",3,14.1,16,314.104663799309,212.684858288755
-"Blacktail Deer Creek",2019-07-30,"Nfixation_unamended","Sediment",2,15.3,16.85,1.83940604455116,0.357387359344483
-"Blacktail Deer Creek",2019-07-30,"Nfixation_unamended","Wood",2,15.35,17.15,6.68448906257912,8.83171614064326
-"Blacktail Deer Creek",2019-07-30,"Denitrification_amended","Rock",0,13.2666666666667,15.5666666666667,NA,NA
-"Blacktail Deer Creek",2019-07-30,"Denitrification_amended","Sediment",0,14.75,16.7,NA,NA
-"Blacktail Deer Creek",2019-07-30,"Denitrification_amended","Wood",0,15,17.05,NA,NA
-"Blacktail Deer Creek",2019-07-30,"Denitrification_unamended","Rock",0,14.3666666666667,16.0666666666667,NA,NA
-"Blacktail Deer Creek",2019-07-30,"Denitrification_unamended","Sediment",0,15.65,16.6,NA,NA
-"Blacktail Deer Creek",2019-07-30,"Denitrification_unamended","Wood",0,15.35,17.05,NA,NA
-"Blaine Creek",2019-08-10,"Nfixation_unamended","Macrophyte",2,17.2,22,0.216708735298743,0.2127420052827
-"Blaine Creek",2019-08-10,"Nfixation_unamended","Rock",3,15.1666666666667,17.3333333333333,0.818038484626316,0.36369631345417
-"Blaine Creek",2019-08-10,"Nfixation_unamended","Sediment",1,16.5,20.9,0.299563551156966,NA
-"Blaine Creek",2019-08-10,"Nfixation_unamended","Wood",2,16.5,19,0.159110714131334,0.2250165298434
-"Blaine Creek",2019-08-10,"Denitrification_amended","Macrophyte",2,17.5,21.95,0,0
-"Blaine Creek",2019-08-10,"Denitrification_amended","Rock",3,15.5,18.9333333333333,160.29483696401,277.638801812634
-"Blaine Creek",2019-08-10,"Denitrification_amended","Sediment",1,16.3,21,30117.9155589804,NA
-"Blaine Creek",2019-08-10,"Denitrification_amended","Wood",2,16.05,20,0,0
-"Blaine Creek",2019-08-10,"Denitrification_unamended","Macrophyte",2,17.4,20.6,0,0
-"Blaine Creek",2019-08-10,"Denitrification_unamended","Rock",2,15.15,17.65,0,0
-"Blaine Creek",2019-08-10,"Denitrification_unamended","Sediment",1,16,20.4,10653.7366365029,NA
-"Blaine Creek",2019-08-10,"Denitrification_unamended","Wood",1,17,20.35,1140.7022871632,NA
-"Brewery Creek",2017-08-11,"Nfixation_unamended","Macrophyte",2,15.5,18.4,0,0
-"Brewery Creek",2017-08-11,"Nfixation_unamended","Sediment",3,15.2333333333333,17.9,0,0
-"Brewery Creek",2017-08-11,"Nfixation_unamended","Wood",2,15.3,16.8,0.597570908404246,0.845092883144895
-"Brewery Creek",2017-08-11,"Denitrification_amended","Macrophyte",2,15.45,18.5,70.6231960912253,99.8762817303454
-"Brewery Creek",2017-08-11,"Denitrification_amended","Sediment",3,15.3333333333333,18.4666666666667,17837.1180007985,12037.3856466901
-"Brewery Creek",2017-08-11,"Denitrification_amended","Wood",3,15.2666666666667,17.0666666666667,1495.50402194269,1293.75687579982
-"Brewery Creek",2017-08-11,"Denitrification_unamended","Macrophyte",2,15.4,18.55,796.470308213894,157.083945113097
-"Brewery Creek",2017-08-11,"Denitrification_unamended","Sediment",3,15.3333333333333,18.2333333333333,9070.25416856932,4460.0020195162
-"Brewery Creek",2017-08-11,"Denitrification_unamended","Wood",3,15.2333333333333,16.8,412.132442519506,410.209455967875
-"Caribou Creek",2019-07-09,"Nfixation_unamended","Rock",3,6.23333333333333,7.33333333333333,0.153280085362225,0.265488895635868
-"Caribou Creek",2019-07-09,"Nfixation_unamended","Sediment",2,7.2,8.15,0.054752521947787,0.0774317591126909
-"Caribou Creek",2019-07-09,"Nfixation_unamended","Wood",2,7,7.9,0.0219767112306541,0.0310797630787481
-"Caribou Creek",2019-07-09,"Denitrification_amended","Rock",3,6.2,7.5,697.541392358872,1208.1771319479
-"Caribou Creek",2019-07-09,"Denitrification_amended","Sediment",2,6.55,8.05,0,0
-"Caribou Creek",2019-07-09,"Denitrification_amended","Wood",2,6.55,7.7,0,0
-"Caribou Creek",2019-07-09,"Denitrification_unamended","Rock",3,6.23333333333333,7.56666666666667,559.220414960524,492.399360896281
-"Caribou Creek",2019-07-09,"Denitrification_unamended","Sediment",2,6.4,7.8,1721.88766785484,389.456665966297
-"Caribou Creek",2019-07-09,"Denitrification_unamended","Wood",2,7.1,7.85,1253.19967185895,1317.38981812819
-"Dowst Cate Forest",2018-08-10,"Nfixation_unamended","Pebble",2,22.6,23.25,0,0
-"Dowst Cate Forest",2018-08-10,"Nfixation_unamended","Rock",3,22.3,23.1333333333333,0,0
-"Dowst Cate Forest",2018-08-10,"Nfixation_unamended","Wood",1,22.5,23.5,0,NA
-"Dowst Cate Forest",2018-08-10,"Denitrification_amended","Pebble",2,22.3,23.25,3176.30807024328,4491.97795121316
-"Dowst Cate Forest",2018-08-10,"Denitrification_amended","Rock",3,22.2333333333333,23.1333333333333,82.8296265262646,17.7689792812491
-"Dowst Cate Forest",2018-08-10,"Denitrification_amended","Wood",2,22.6,23.45,228.466580040062,186.966303210215
-"Dowst Cate Forest",2018-08-10,"Denitrification_unamended","Pebble",1,22.6,23.45,171.984457799229,NA
-"Dowst Cate Forest",2018-08-10,"Denitrification_unamended","Rock",3,22.3,23.1333333333333,0,0
-"Dowst Cate Forest",2018-08-10,"Denitrification_unamended","Wood",2,22.55,23.6,0,0
-"Eno River",2017-06-04,"Nfixation_unamended","Clay",1,23.8,25.8,3.62657734095826,NA
-"Eno River",2017-06-04,"Nfixation_unamended","Rock",2,24.05,27.35,0,0
-"Eno River",2017-06-04,"Nfixation_unamended","Sediment",2,23.5,26.3,4.30837388105842,2.89261774136607
-"Eno River",2017-06-04,"Nfixation_unamended","Wood",2,23.9,26.6,0,0
-"Eno River",2017-06-04,"Denitrification_amended","Clay",2,23.75,25.6,0,0
-"Eno River",2017-06-04,"Denitrification_amended","Rock",2,24.05,27.05,0,0
-"Eno River",2017-06-04,"Denitrification_amended","Sediment",3,23.4333333333333,25.4333333333333,3457.60145336641,1267.19205150644
-"Eno River",2017-06-04,"Denitrification_amended","Wood",2,24.15,27.2,4775.91976804283,6754.17050877193
-"Eno River",2017-06-04,"Denitrification_unamended","Clay",2,23.75,25.55,8608.15218457248,1225.83075475227
-"Eno River",2017-06-04,"Denitrification_unamended","Sediment",3,23,25.3333333333333,7794.35104995527,3334.81061147899
-"Eno River",2017-06-04,"Denitrification_unamended","Wood",1,24.1,26.55,2450.50612581109,NA
-"Hop Brook",2018-08-15,"Nfixation_unamended","Rock",3,19.0666666666667,20.1333333333333,0,0
-"Hop Brook",2018-08-15,"Nfixation_unamended","Sediment",2,19.55,20.45,0,0
-"Hop Brook",2018-08-15,"Nfixation_unamended","Wood",2,19.85,20.7,0,0
-"Hop Brook",2018-08-15,"Denitrification_amended","Rock",3,18.9666666666667,20.2,49.4719317460962,85.6878993328183
-"Hop Brook",2018-08-15,"Denitrification_amended","Sediment",2,19.6,20.55,2618.63601007277,3334.00614238099
-"Hop Brook",2018-08-15,"Denitrification_amended","Wood",2,19.75,20.8,204.765305869491,289.581872664109
-"Hop Brook",2018-08-15,"Denitrification_unamended","Rock",3,19.0666666666667,20.2666666666667,112.485104781784,194.829916576758
-"Hop Brook",2018-08-15,"Denitrification_unamended","Sediment",2,19.6,20.5,590.568602896309,835.190127727691
-"Hop Brook",2018-08-15,"Denitrification_unamended","Wood",2,19.8,20.8,33.7966323877002,47.7956558852234
-"Hubbard Brook",2018-08-07,"Nfixation_unamended","Bedrock scrape",4,20.225,20.15,0,0
-"Hubbard Brook",2018-08-07,"Nfixation_unamended","Rock",6,20.2833333333333,20.1,0,0
-"Hubbard Brook",2018-08-07,"Denitrification_amended","Bedrock scrape",2,20,20.25,222.551788407701,314.735757496558
-"Hubbard Brook",2018-08-07,"Denitrification_amended","Rock",3,19.5666666666667,20.1333333333333,9.50676566545947,16.4662011482271
-"Hubbard Brook",2018-08-07,"Denitrification_unamended","Bedrock scrape",2,20.15,20.15,106.775252624293,0
-"Hubbard Brook",2018-08-07,"Denitrification_unamended","Rock",3,20.4,20.1,24.7015185656005,22.2040549805888
-"Ichetucknee River",2018-05-31,"Nfixation_unamended","Macrophyte",3,22.8333333333333,24.1333333333333,1.96908626788289,1.73238497022491
-"Ichetucknee River",2018-05-31,"Nfixation_unamended","Sediment",2,22.45,24.2,14.6078535293799,20.6586245784087
-"Ichetucknee River",2018-05-31,"Nfixation_unamended","Wood",2,22.75,23.6,0.187488232750098,0.265148401540552
-"Ichetucknee River",2018-05-31,"Denitrification_amended","Macrophyte",3,22.9333333333333,24.5666666666667,45.7989925780926,39.7034489911792
-"Ichetucknee River",2018-05-31,"Denitrification_amended","Sediment",2,22.55,23,17866.5719947616,5229.76171584945
-"Ichetucknee River",2018-05-31,"Denitrification_amended","Wood",2,23,23.45,14411.698310863,20381.2192080519
-"Ichetucknee River",2018-05-31,"Denitrification_unamended","Macrophyte",3,22.2,24.7,55.7470457886541,56.7090640278134
-"Ichetucknee River",2018-05-31,"Denitrification_unamended","Sediment",2,22.95,23.35,4729.55703624909,3902.82900681204
-"Ichetucknee River",2018-05-31,"Denitrification_unamended","Wood",2,23,23.35,736.702752744956,1041.85502436951
-"Kings Creek",2018-06-13,"Nfixation_unamended","Rock",2,23.65,23.85,87.1753853499881,88.2604694196391
-"Kings Creek",2018-06-13,"Nfixation_unamended","Sediment",3,23.7,24.1666666666667,38.5867829077959,28.6836655829831
-"Kings Creek",2018-06-13,"Nfixation_unamended","Wood",2,23.8,23.9,34.7582834454057,14.5638156681639
-"Kings Creek",2018-06-13,"Denitrification_amended","Rock",2,23.55,23.85,7783.92548931486,8717.68626404033
-"Kings Creek",2018-06-13,"Denitrification_amended","Sediment",3,23.6,24.1333333333333,11752.183794235,7138.40647622313
-"Kings Creek",2018-06-13,"Denitrification_amended","Wood",2,23.65,23.9,698.58332334993,21.102360284675
-"Kings Creek",2018-06-13,"Denitrification_unamended","Rock",2,23.7,23.8,46.0230951949684,1.06464851678648
-"Kings Creek",2018-06-13,"Denitrification_unamended","Sediment",3,23.5,24.2666666666667,1069.9775090035,1853.25540855004
-"Kings Creek",2018-06-13,"Denitrification_unamended","Wood",2,23.7,24,22122.7448203721,30042.2430418632
-"Kings Creek",2019-05-10,"Nfixation_unamended","Rock",3,12.3,12.7,3.04235327717172,1.1553845632
-"Kings Creek",2019-05-10,"Nfixation_unamended","Sediment",3,12.2333333333333,13.1,0.406381504814765,0.531744090477391
-"Kings Creek",2019-05-10,"Nfixation_unamended","Wood",2,12.3,13.2,0.0923035760941656,0.0963836583203505
-"Kings Creek",2019-05-10,"Denitrification_amended","Rock",3,11.9,12.7,0,0
-"Kings Creek",2019-05-10,"Denitrification_amended","Sediment",3,12,12.9666666666667,810.239093583621,1403.37527636539
-"Kings Creek",2019-05-10,"Denitrification_amended","Wood",2,12.15,13.3,542.834037123753,767.683257418152
-"Kings Creek",2019-05-10,"Denitrification_unamended","Rock",3,12.1,12.7333333333333,0,0
-"Kings Creek",2019-05-10,"Denitrification_unamended","Sediment",3,12.1,13.1666666666667,0,0
-"Kings Creek",2019-05-10,"Denitrification_unamended","Wood",2,12.3,13.25,219.161293491288,259.008849392638
-"Lower Knowton Fork Red Butte Creek",2017-07-18,"Nfixation_unamended","Rock",3,10.6333333333333,12.4333333333333,0.819983452364014,1.42025300086021
-"Lower Knowton Fork Red Butte Creek",2017-07-18,"Nfixation_unamended","Sediment",3,11.6666666666667,13.6,5.52690386762039,6.91079116498578
-"Lower Knowton Fork Red Butte Creek",2017-07-18,"Nfixation_unamended","Wood",2,13.1,12.55,2.79407450296095,3.95141805636823
-"Lower Knowton Fork Red Butte Creek",2017-07-18,"Denitrification_amended","Rock",3,10.5333333333333,12.1,14.7578248836068,25.5613025076112
-"Lower Knowton Fork Red Butte Creek",2017-07-18,"Denitrification_amended","Sediment",3,11.9,12.9,9071.69949686938,8150.22588573964
-"Lower Knowton Fork Red Butte Creek",2017-07-18,"Denitrification_amended","Wood",2,13.5,12.9,0,0
-"Lower Knowton Fork Red Butte Creek",2017-07-18,"Denitrification_unamended","Rock",2,10.6333333333333,12.2666666666667,0,0
-"Lower Knowton Fork Red Butte Creek",2017-07-18,"Denitrification_unamended","Sediment",3,12.2666666666667,13.3666666666667,332.021351919646,575.077850722533
-"Lower Knowton Fork Red Butte Creek",2017-07-18,"Denitrification_unamended","Wood",2,13.2,12.4,9.50571985364268,13.4431179371407
-"Martha Creek",2019-08-06,"Nfixation_unamended","Rock",4,16.3,18.3,7.53654746910832,11.5239555013975
-"Martha Creek",2019-08-06,"Nfixation_unamended","Sediment",2,17.35,18.5,2.05596374500271,0.474858227537933
-"Martha Creek",2019-08-06,"Nfixation_unamended","Wood",2,17.65,18.45,26.1106991706658,20.9387759890837
-"Martha Creek",2019-08-06,"Denitrification_amended","Rock",3,15.9666666666667,18.2,0,0
-"Martha Creek",2019-08-06,"Denitrification_amended","Sediment",2,16.8,18.5,0,0
-"Martha Creek",2019-08-06,"Denitrification_amended","Wood",2,17.05,18.4,804.759579946821,1138.10191241047
-"Martha Creek",2019-08-06,"Denitrification_unamended","Rock",3,16.0666666666667,17.9,277.825605086763,481.208063653839
-"Martha Creek",2019-08-06,"Denitrification_unamended","Sediment",2,16.75,18.55,311.032974751872,439.867051239346
-"Martha Creek",2019-08-06,"Denitrification_unamended","Wood",2,17.55,18.45,77.1821065986218,109.151981924297
-"McDiffit Creek",2018-06-12,"Nfixation_unamended","Rock",3,22.5666666666667,22.8666666666667,38.0425562956086,41.7452220018966
-"McDiffit Creek",2018-06-12,"Nfixation_unamended","Sediment",3,23.1333333333333,24.1,7.64966047119463,6.49943099644888
-"McDiffit Creek",2018-06-12,"Nfixation_unamended","Wood",2,23.35,23.9,8.76932924324342,0.389303877644025
-"McDiffit Creek",2018-06-12,"Denitrification_amended","Rock",3,22.5,22.7,364.209226737959,487.995918929125
-"McDiffit Creek",2018-06-12,"Denitrification_amended","Sediment",3,23.1333333333333,24.7666666666667,29208.5710158053,7611.97613602736
-"McDiffit Creek",2018-06-12,"Denitrification_amended","Wood",2,23.25,23.9,6975.0875410507,784.687598510497
-"McDiffit Creek",2018-06-12,"Denitrification_unamended","Rock",3,22.7333333333333,22.9666666666667,42.7079914677701,59.5211122476034
-"McDiffit Creek",2018-06-12,"Denitrification_unamended","Sediment",3,22.9,24.1333333333333,2353.79030719493,434.791089711378
-"McDiffit Creek",2018-06-12,"Denitrification_unamended","Wood",2,23.25,23.75,697.741246397847,986.755133682943
-"McRae Creek",2019-08-03,"Nfixation_unamended","Rock",3,10.7,11,0.0476850165680432,0.0764284357339065
-"McRae Creek",2019-08-03,"Nfixation_unamended","Sediment",2,11.15,11.5,0.916990311961291,0.778772099358497
-"McRae Creek",2019-08-03,"Nfixation_unamended","Wood",2,11.1,11.6,0.124981568158527,0.0125783418666773
-"McRae Creek",2019-08-03,"Denitrification_amended","Rock",3,10.6,11.0666666666667,2073.12583319182,1919.76632370858
-"McRae Creek",2019-08-03,"Denitrification_amended","Sediment",2,11,11.5,1398.20070339022,1977.35439765405
-"McRae Creek",2019-08-03,"Denitrification_amended","Wood",2,11.15,11.65,0,0
-"McRae Creek",2019-08-03,"Denitrification_unamended","Rock",3,10.7333333333333,11.0333333333333,707.592277458645,711.46982345995
-"McRae Creek",2019-08-03,"Denitrification_unamended","Sediment",2,11.25,11.45,1733.50354887533,2451.54422924138
-"McRae Creek",2019-08-03,"Denitrification_unamended","Wood",2,11.2,11.6,2075.40513231917,2935.06608554449
-"New Hope Creek",2017-06-03,"Nfixation_unamended","Rock",3,21.4,24.1666666666667,3.36848727968146,2.93638439205721
-"New Hope Creek",2017-06-03,"Nfixation_unamended","Sediment",3,22.2333333333333,25.5333333333333,0.923568362830705,1.59966732868599
-"New Hope Creek",2017-06-03,"Nfixation_unamended","Wood",2,22.4,24.35,4.1153965472557,4.18909290829428
-"New Hope Creek",2017-06-03,"Denitrification_amended","Rock",3,21.4,23.9666666666667,0,0
-"New Hope Creek",2017-06-03,"Denitrification_amended","Sediment",3,22.2333333333333,25.3333333333333,4332.17873907636,1336.45156013439
-"New Hope Creek",2017-06-03,"Denitrification_amended","Wood",2,22.4,25,130.698763605925,184.835964076894
-"New Hope Creek",2017-06-03,"Denitrification_unamended","Rock",3,21.4333333333333,24.2333333333333,61.1608144547707,66.4891837449559
-"New Hope Creek",2017-06-03,"Denitrification_unamended","Sediment",3,22.2333333333333,24.6666666666667,1058.18989299421,1404.33630170868
-"New Hope Creek",2017-06-03,"Denitrification_unamended","Wood",2,22.4,24.6,24.5654484224603,27.2495932447821
-"New Hope Creek",2018-05-27,"Nfixation_unamended","Rock",3,22.2666666666667,23.3333333333333,5.28773491501325,8.56591343632283
-"New Hope Creek",2018-05-27,"Nfixation_unamended","Sediment",3,22.4666666666667,22.6,0.55446338012873,0.960358745319336
-"New Hope Creek",2018-05-27,"Nfixation_unamended","Wood",2,22.6,23.3,1.65276374584757,2.2307960403413
-"New Hope Creek",2018-05-27,"Denitrification_amended","Rock",3,22.2333333333333,23.2333333333333,0,0
-"New Hope Creek",2018-05-27,"Denitrification_amended","Sediment",3,22.3666666666667,22.6666666666667,4479.64304563902,3633.86778315693
-"New Hope Creek",2018-05-27,"Denitrification_amended","Wood",2,22.7,23.4,1211.66175304089,460.863338498656
-"New Hope Creek",2018-05-27,"Denitrification_unamended","Rock",2,22.4,23.2,0,0
-"New Hope Creek",2018-05-27,"Denitrification_unamended","Sediment",3,22.4666666666667,22.5666666666667,1570.30355656575,240.38063509875
-"New Hope Creek",2018-05-27,"Denitrification_unamended","Wood",2,22.85,23.45,65.7260446326187,92.9506637205887
-"New Hope Creek",2018-05-27,"Denitrification_unamended","rock",1,22.4,22.9,0,NA
-"Pilgrim River",2018-06-21,"Nfixation_unamended","Rock",2,15.9,17.8,22.5207402222659,0.92210680247688
-"Pilgrim River",2018-06-21,"Nfixation_unamended","Sediment",3,15.6666666666667,17.8333333333333,6.49882659499721,7.3140000467359
-"Pilgrim River",2018-06-21,"Nfixation_unamended","Wood",2,15.2,17.25,3.42848429521737,4.84860898867957
-"Pilgrim River",2018-06-21,"Denitrification_amended","Rock",2,14.4,17.35,210.090023621546,77.4107735007435
-"Pilgrim River",2018-06-21,"Denitrification_amended","Sediment",3,14.8666666666667,17.7,0,0
-"Pilgrim River",2018-06-21,"Denitrification_amended","Wood",2,15.2,17.65,0,0
-"Pilgrim River",2018-06-21,"Denitrification_unamended","Rock",2,15.65,17.8,154.163414949097,218.019992242763
-"Pilgrim River",2018-06-21,"Denitrification_unamended","Sediment",3,15.7333333333333,18.1666666666667,648.705659742287,574.010495120529
-"Pilgrim River",2018-06-21,"Denitrification_unamended","Wood",2,15.15,17.1,0,0
-"Pilgrim River",2018-07-17,"Nfixation_unamended","Rock",2,18.8,20.5,1.42604793224902,2.01673632638067
-"Pilgrim River",2018-07-17,"Nfixation_unamended","Sediment",3,19.1333333333333,19.9333333333333,1.64404839456775,1.42386157184326
-"Pilgrim River",2018-07-17,"Nfixation_unamended","Wood",2,18.65,19.8,4.15384701019642,2.30499392759367
-"Pilgrim River",2018-07-17,"Denitrification_amended","Rock",2,18.25,20.5,120.505094551949,14.3262930571481
-"Pilgrim River",2018-07-17,"Denitrification_amended","Sediment",3,18.8333333333333,20,1865.4933445778,1979.50873453821
-"Pilgrim River",2018-07-17,"Denitrification_amended","Wood",2,18.25,19.95,154.786231907767,149.654040508644
-"Pilgrim River",2018-07-17,"Denitrification_unamended","Rock",2,18.95,20.7,0,0
-"Pilgrim River",2018-07-17,"Denitrification_unamended","Sediment",3,19.1,20.4666666666667,1777.11290747161,2699.67339378937
-"Pilgrim River",2018-07-17,"Denitrification_unamended","Wood",2,18.35,19.75,55.0591812160698,58.1318144609641
-"Pilgrim River",2019-06-13,"Nfixation_unamended","Rock",3,13.1666666666667,14.7,2.00662903096326,3.47558343357106
-"Pilgrim River",2019-06-13,"Nfixation_unamended","Sediment",3,14.2333333333333,15.5333333333333,1.9730005027127,1.47921334187392
-"Pilgrim River",2019-06-13,"Nfixation_unamended","Wood",2,15.6,16.9,0.345967587125372,0.489272053854196
-"Pilgrim River",2019-06-13,"Denitrification_amended","Rock",3,12.2666666666667,14.4333333333333,0,0
-"Pilgrim River",2019-06-13,"Denitrification_amended","Sediment",3,13.4333333333333,15.4,3738.08032073864,937.340856762633
-"Pilgrim River",2019-06-13,"Denitrification_amended","Wood",2,15.3,16.75,378.314954786392,535.01813990748
-"Pilgrim River",2019-06-13,"Denitrification_unamended","Rock",3,13.4,14.8666666666667,0,0
-"Pilgrim River",2019-06-13,"Denitrification_unamended","Sediment",3,14,15.5333333333333,535.945673440388,928.285136495469
-"Pilgrim River",2019-06-13,"Denitrification_unamended","Wood",2,15.75,17.15,284.675610124777,402.592108715295
-"Pilgrim River",2019-09-09,"Nfixation_unamended","Rock",2,13.3,14.15,0.881008516868357,0.489525283429428
-"Pilgrim River",2019-09-09,"Nfixation_unamended","Sediment",2,13.6,14.4,0,0
-"Pilgrim River",2019-09-09,"Nfixation_unamended","Wood",2,13.7,14.15,0.430849815970159,0.2630703495109
-"Pilgrim River",2019-09-09,"Denitrification_amended","Rock",2,12.5,14.2,501.60720828258,709.379716937331
-"Pilgrim River",2019-09-09,"Denitrification_amended","Sediment",2,12.95,14.7,0,0
-"Pilgrim River",2019-09-09,"Denitrification_amended","Wood",2,13.75,14.3,0,0
-"Pilgrim River",2019-09-09,"Denitrification_unamended","Rock",2,13.65,14.4,760.951036640048,1076.14727631822
-"Pilgrim River",2019-09-09,"Denitrification_unamended","Sediment",2,13.75,14.55,823.225078913805,1164.21607148556
-"Pilgrim River",2019-09-09,"Denitrification_unamended","Wood",2,13.6,14.45,71.6463433374043,101.323230442196
-"Poker Creek",2019-07-10,"Nfixation_unamended","Rock",2,7.6,8.5,0.418723976357674,0.592165126255814
-"Poker Creek",2019-07-10,"Nfixation_unamended","Sediment",3,8.46666666666667,8.96666666666667,1.55877388376626,1.60538526390966
-"Poker Creek",2019-07-10,"Nfixation_unamended","Wood",2,8.35,9,0.952225974561636,0.17618852865592
-"Poker Creek",2019-07-10,"Denitrification_amended","Rock",2,7.2,8.6,1183.50452296229,1673.72814750317
-"Poker Creek",2019-07-10,"Denitrification_amended","Sediment",3,7.76666666666667,9,622.806136376094,540.726876469592
-"Poker Creek",2019-07-10,"Denitrification_amended","Wood",2,8.3,9.05,0,0
-"Poker Creek",2019-07-10,"Denitrification_unamended","Rock",2,7.45,8.55,0,0
-"Poker Creek",2019-07-10,"Denitrification_unamended","Sediment",3,8.16666666666667,8.96666666666667,523.202687940377,906.213638169336
-"Poker Creek",2019-07-10,"Denitrification_unamended","Wood",2,8.6,9.15,0,0
-"Pringle Creek",2018-06-09,"Nfixation_unamended","Pebble",2,26.85,30.95,37.4552907774169,16.0017151650038
-"Pringle Creek",2018-06-09,"Nfixation_unamended","Rock",2,26.1,28.6,57.0617377037984,54.7906966069427
-"Pringle Creek",2018-06-09,"Nfixation_unamended","Sediment",3,27.3,31,18.0942032131544,10.2397009013566
-"Pringle Creek",2018-06-09,"Nfixation_unamended","Wood",2,28.3,30.5,18.2787726086235,23.2836198836958
-"Pringle Creek",2018-06-09,"Denitrification_amended","Pebble",2,26.45,31,8957.93151880126,3175.23556705458
-"Pringle Creek",2018-06-09,"Denitrification_amended","Rock",2,25.7,28.4,1327.23929447346,1525.81693286324
-"Pringle Creek",2018-06-09,"Denitrification_amended","Sediment",3,27.1,30.8333333333333,12243.1220315713,4286.22717030369
-"Pringle Creek",2018-06-09,"Denitrification_amended","Wood",2,28.35,30.65,1071.46720764087,716.137793347605
-"Pringle Creek",2018-06-09,"Denitrification_unamended","Pebble",2,26.45,31.3,1391.88294222769,583.119735075421
-"Pringle Creek",2018-06-09,"Denitrification_unamended","Rock",2,26.15,28.8,0,0
-"Pringle Creek",2018-06-09,"Denitrification_unamended","Sediment",3,27.2,30.9333333333333,2311.23088823065,2408.73650442971
-"Pringle Creek",2018-06-09,"Denitrification_unamended","Wood",2,28.65,30.9,59.3223972530096,83.8945387476907
-"Quebrada Prieta",2019-03-03,"Nfixation_unamended","Rock",2,21.95,21.75,0,0
-"Quebrada Prieta",2019-03-03,"Nfixation_unamended","Sediment",2,21.65,21.95,0.100072123297827,0.14152335398326
-"Quebrada Prieta",2019-03-03,"Nfixation_unamended","Wood",2,21.6,22.4,0.0910464539507876,0.128759129983181
-"Quebrada Prieta",2019-03-03,"Denitrification_amended","Rock",2,21.2,21.75,39.4567545497493,2.60525491568539
-"Quebrada Prieta",2019-03-03,"Denitrification_amended","Sediment",2,21.7,22.1,458.500947646419,179.083849954698
-"Quebrada Prieta",2019-03-03,"Denitrification_amended","Wood",3,21.4666666666667,21.8666666666667,391.519371219117,141.888175014543
-"Quebrada Prieta",2019-03-03,"Denitrification_unamended","Rock",2,22.45,21.95,0,0
-"Quebrada Prieta",2019-03-03,"Denitrification_unamended","Sediment",2,21.55,22.55,9.54240834431927,13.4950032982385
-"Quebrada Prieta",2019-03-03,"Denitrification_unamended","Wood",2,21.65,22,36.676804765474,27.9428731414351
-"Quebrada Sonadora",2019-03-05,"Nfixation_unamended","Rock",2,20.95,21.1,0.893786142268405,1.26400448425711
-"Quebrada Sonadora",2019-03-05,"Nfixation_unamended","Wood",2,21.4,21.15,0.0356670565182458,0.0504408350580309
-"Quebrada Sonadora",2019-03-05,"Denitrification_amended","Rock",2,20.6,21.1,782.307094927976,45.4943261269625
-"Quebrada Sonadora",2019-03-05,"Denitrification_amended","Wood",2,21.3,21.1,604.055276019369,854.263163769615
-"Quebrada Sonadora",2019-03-05,"Denitrification_unamended","Rock",2,21.25,21.05,412.527048422009,395.127068494808
-"Quebrada Sonadora",2019-03-05,"Denitrification_unamended","Wood",2,21.4,21,7.08551516390558,10.0204316411955
-"Rio Cupeyes",2019-02-23,"Nfixation_unamended","CPOM",1,22.8,22.4,0.014476226396794,NA
-"Rio Cupeyes",2019-02-23,"Nfixation_unamended","Pebble",2,23,22.45,0.0196260443377057,0.0240196063681486
-"Rio Cupeyes",2019-02-23,"Nfixation_unamended","Rock",3,22.3333333333333,22.6,0.0118551354189674,0.0205336968762608
-"Rio Cupeyes",2019-02-23,"Denitrification_amended","CPOM",1,22.7,22.4,8204.1739885285,NA
-"Rio Cupeyes",2019-02-23,"Denitrification_amended","Pebble",2,22.75,22.45,12210.8694248756,4166.66812983432
-"Rio Cupeyes",2019-02-23,"Denitrification_amended","Rock",3,22.0666666666667,22.5666666666667,9547.03740842815,1451.73849778301
-"Rio Cupeyes",2019-02-23,"Denitrification_unamended","CPOM",1,22.8,22.4,8757.49971475556,NA
-"Rio Cupeyes",2019-02-23,"Denitrification_unamended","Pebble",2,22.85,22.45,7685.16730752433,52.594248461004
-"Rio Cupeyes",2019-02-23,"Denitrification_unamended","Rock",3,22.1666666666667,22.5666666666667,9487.4086868975,4633.82140207286
-"Rio Guillarte",2019-02-21,"Nfixation_unamended","Algae",1,24.7,23.6,0.682132517719397,NA
-"Rio Guillarte",2019-02-21,"Nfixation_unamended","CPOM",1,22.8,23.6,0,NA
-"Rio Guillarte",2019-02-21,"Nfixation_unamended","Rock",2,21.6,24.35,0.0714012835815329,0.100976663611851
-"Rio Guillarte",2019-02-21,"Nfixation_unamended","gravel",1,22.4,23.7,0.80210295438605,NA
-"Rio Guillarte",2019-02-21,"Nfixation_unamended","rock",1,21.9,24.1,0,NA
-"Rio Guillarte",2019-02-21,"Denitrification_amended","Algae",1,24.7,23.6,0,NA
-"Rio Guillarte",2019-02-21,"Denitrification_amended","CPOM",1,23.1,23.6,15720.5419071258,NA
-"Rio Guillarte",2019-02-21,"Denitrification_amended","Gravel",1,23.5,23.4,0,NA
-"Rio Guillarte",2019-02-21,"Denitrification_amended","Rock",3,21.4,24.1666666666667,0,0
-"Rio Guillarte",2019-02-21,"Denitrification_unamended","Algae",1,24,24,111.965989115742,NA
-"Rio Guillarte",2019-02-21,"Denitrification_unamended","CPOM",1,22.5,23.6,1662.28073124859,NA
-"Rio Guillarte",2019-02-21,"Denitrification_unamended","Gravel",1,22.6,23.6,161.716797740497,NA
-"Rio Guillarte",2019-02-21,"Denitrification_unamended","Rock",3,21.9333333333333,24.5666666666667,0,0
-"South Fork Mink Creek",2017-07-27,"Nfixation_unamended","Macrophyte",2,15.95,16.95,0.401193882454601,0.37824921980561
-"South Fork Mink Creek",2017-07-27,"Nfixation_unamended","Rock",4,15.2,17.85,506.25893084181,178.489749421885
-"South Fork Mink Creek",2017-07-27,"Nfixation_unamended","Sediment",2,16.1,19.6,7.52877455982935,2.50283237196213
-"South Fork Mink Creek",2017-07-27,"Nfixation_unamended","Wood",2,15.75,19.2,103.467456250841,139.920643440727
-"South Fork Mink Creek",2017-07-27,"Denitrification_amended","Macrophyte",2,16.35,17.1,11706.3960696667,14742.6671522073
-"South Fork Mink Creek",2017-07-27,"Denitrification_amended","Rock",4,15.075,17.825,11.1497284238229,22.2994568476458
-"South Fork Mink Creek",2017-07-27,"Denitrification_amended","Sediment",2,16.6,18.45,3114.7384897129,3242.72457424538
-"South Fork Mink Creek",2017-07-27,"Denitrification_amended","Wood",2,15.7,19.35,189.478188233119,267.96262357316
-"South Fork Mink Creek",2017-07-27,"Denitrification_unamended","Macrophyte",2,16.1,17.7,1193.67904968191,763.453669680231
-"South Fork Mink Creek",2017-07-27,"Denitrification_unamended","Rock",4,15.225,17.975,0,0
-"South Fork Mink Creek",2017-07-27,"Denitrification_unamended","Sediment",2,17.1,19.7,124.522653678546,176.101625654888
-"South Fork Mink Creek",2017-07-27,"Denitrification_unamended","Wood",2,15.7,19.05,45.9332504711657,64.9594257802028
-"Sycamore Creek",2019-05-14,"Nfixation_unamended","Algae",2,25.75,27,0.322111394053219,0.455534302064967
-"Sycamore Creek",2019-05-14,"Nfixation_unamended","Rock",2,25.9,27.5,2.63175885294901,2.40245595997547
-"Sycamore Creek",2019-05-14,"Nfixation_unamended","Sediment",2,26.55,27.1,0,0
-"Sycamore Creek",2019-05-14,"Nfixation_unamended","Wood",2,25.3,26.65,4.6428731653773,1.24739990870572
-"Sycamore Creek",2019-05-14,"Denitrification_amended","Algae",2,23.9,27.6,667.802043928526,46.6867479383819
-"Sycamore Creek",2019-05-14,"Denitrification_amended","Rock",2,23.95,28.05,0,0
-"Sycamore Creek",2019-05-14,"Denitrification_amended","Sediment",2,26.05,26.4,1908.29415711763,1018.2953011748
-"Sycamore Creek",2019-05-14,"Denitrification_amended","Wood",2,25.1,27,548.001974531245,243.356817567391
-"Sycamore Creek",2019-05-14,"Denitrification_unamended","Algae",1,25.35,27.05,0,NA
-"Sycamore Creek",2019-05-14,"Denitrification_unamended","Rock",2,25.45,27.8,973.934586216204,1377.35150069118
-"Sycamore Creek",2019-05-14,"Denitrification_unamended","Sediment",2,26.45,27,0,0
-"Wednesday Hill Brook",2018-08-09,"Nfixation_unamended","Rock Flock",3,20.3666666666667,20.6,0,0
-"Wednesday Hill Brook",2018-08-09,"Nfixation_unamended","Sediment",2,21.1,20.85,9.21875960071591,13.0372948555896
-"Wednesday Hill Brook",2018-08-09,"Nfixation_unamended","Wood",3,20.8666666666667,20.7666666666667,2.81950819372716,2.93261769983798
-"Wednesday Hill Brook",2018-08-09,"Denitrification_amended","Rock Flock",3,20.2666666666667,20.7666666666667,181.723227362694,307.080171251654
-"Wednesday Hill Brook",2018-08-09,"Denitrification_amended","Sediment",2,21.15,20.85,1467.32992879744,1631.02895698056
-"Wednesday Hill Brook",2018-08-09,"Denitrification_amended","Wood",3,20.8,21,1632.10601840805,2540.5652037626
-"Wednesday Hill Brook",2018-08-09,"Denitrification_unamended","Rock Flock",3,20.4,20.6,17.9439893638861,31.0799012687262
-"Wednesday Hill Brook",2018-08-09,"Denitrification_unamended","Sediment",2,20.75,20.85,1065.14881540545,1506.34790069203
-"Wednesday Hill Brook",2018-08-09,"Denitrification_unamended","Wood",3,21.2,20.9333333333333,662.469978282952,592.120557979083
-"Wet Beaver Creek",2019-05-16,"Nfixation_unamended","Rock",3,18.3333333333333,20.2,31.7816521121511,19.3366090341508
-"Wet Beaver Creek",2019-05-16,"Nfixation_unamended","Sediment",2,19,20.8,0.496435625506361,0.0269508785091479
-"Wet Beaver Creek",2019-05-16,"Nfixation_unamended","Wood",2,18.2,20.4,6.97272807325713,5.51153771951791
-"Wet Beaver Creek",2019-05-16,"Denitrification_amended","Rock",3,17.4666666666667,20.1,0,0
-"Wet Beaver Creek",2019-05-16,"Denitrification_amended","Sediment",2,18.95,21.15,149.097605980247,210.855856494625
-"Wet Beaver Creek",2019-05-16,"Denitrification_amended","Wood",2,17.95,20.55,0,0
-"Wet Beaver Creek",2019-05-16,"Denitrification_unamended","Rock",2,18.35,20.15,701.032102111714,991.409106465306
-"Wet Beaver Creek",2019-05-16,"Denitrification_unamended","Sediment",2,19.45,20.35,1057.25630385662,1495.18620381848
-"Wet Beaver Creek",2019-05-16,"Denitrification_unamended","Wood",2,18.5,20.3,390.295636124057,551.961381941676
+SiteName,date,ProcessName,origilsubstrate,count,TempInitial_C,TempFinal_C,Flux_ugNm2hr_mean,Flux_ugNm2hr_sd
+1300 E Red Butte Creek,7/19/17,Nfixation_unamended,Rock,2,17.95,18.5,1.091720845,1.543926425
+1300 E Red Butte Creek,7/19/17,Nfixation_unamended,Rock Flock,2,17.95,18.25,0.486884065,0.688558047
+1300 E Red Butte Creek,7/19/17,Nfixation_unamended,Wood,2,18.1,18.6,0.451530114,0.638560011
+1300 E Red Butte Creek,7/19/17,Denitrification_amended,Rock,2,18.05,18.75,48.36926105,15.9867056
+1300 E Red Butte Creek,7/19/17,Denitrification_amended,Rock Flock,2,18.05,18.5,432.1760075,611.1891711
+1300 E Red Butte Creek,7/19/17,Denitrification_amended,Wood,2,18.2,18.8,768.1692145,645.948143
+1300 E Red Butte Creek,7/19/17,Denitrification_unamended,Rock,2,18.15,18.45,103.7831673,146.7715627
+1300 E Red Butte Creek,7/19/17,Denitrification_unamended,Rock Flock,2,18,18.3,610.4401934,369.0537303
+1300 E Red Butte Creek,7/19/17,Denitrification_unamended,Wood,2,18.1,18.8,41.9842657,21.79806982
+Alexander Springs,6/2/18,Nfixation_unamended,Macrophyte,4,25,26.125,131.8986051,119.5569457
+Alexander Springs,6/2/18,Nfixation_unamended,Sediment,3,25,25.9,10.94742813,9.72401462
+Alexander Springs,6/2/18,Nfixation_unamended,Wood,2,24.85,26.15,8.832514755,12.34123509
+Alexander Springs,6/2/18,Denitrification_amended,Macrophyte,2,24.15,26.1,6641.626284,9392.677967
+Alexander Springs,6/2/18,Denitrification_amended,Sediment,3,24.96666667,26.13333333,231.1573877,206.1166077
+Alexander Springs,6/2/18,Denitrification_amended,Wood,2,25.3,26.2,897.842459,491.0874026
+Alexander Springs,6/2/18,Denitrification_unamended,Macrophyte,2,25.6,25.65,11772.95609,16649.47417
+Alexander Springs,6/2/18,Denitrification_unamended,Sediment,3,24.86666667,26.16666667,518.7874188,719.0022248
+Alexander Springs,6/2/18,Denitrification_unamended,Wood,2,24.5,26.05,661.589024,572.5107588
+Arikaree River,7/11/17,Nfixation_unamended,Macrophyte,4,29.375,30.75,462.1753526,510.0809422
+Arikaree River,7/11/17,Nfixation_unamended,Sediment,5,29.96,31.26,62.02897884,64.00848803
+Arikaree River,7/11/17,Denitrification_amended,Macrophyte,4,28.75,30.5,10640.14997,8260.01566
+Arikaree River,7/11/17,Denitrification_amended,Sediment,5,29.06,30.92,15911.27273,4697.345786
+Arikaree River,7/11/17,Denitrification_unamended,Macrophyte,4,28.95,30.875,317.8861055,194.9299791
+Arikaree River,7/11/17,Denitrification_unamended,Sediment,5,29.4,30.96,1140.928038,955.1176564
+Arikaree River,5/24/19,Nfixation_unamended,Algae,3,17.63333333,21.33333333,376.8445877,154.5829593
+Arikaree River,5/24/19,Nfixation_unamended,Sediment,3,20.36666667,23.33333333,11.56199184,9.850825276
+Arikaree River,5/24/19,Denitrification_amended,Algae,3,15.76666667,21.46666667,1725.527297,1505.418634
+Arikaree River,5/24/19,Denitrification_amended,Sediment,3,17.83333333,22.3,1816.521274,1381.691695
+Arikaree River,5/24/19,Denitrification_unamended,Algae,3,16.6,20.8,779.3820691,674.972203
+Arikaree River,5/24/19,Denitrification_unamended,Sediment,3,20.13333333,22.96666667,280.0913935,485.1325243
+Black Earth Creek,8/8/17,Nfixation_unamended,Macrophyte,2,15.7,18.55,0.214732857,0.303678119
+Black Earth Creek,8/8/17,Nfixation_unamended,Rock,2,17.45,18.55,1.104294778,1.561708652
+Black Earth Creek,8/8/17,Nfixation_unamended,Sediment,3,18,18.8,1.324909589,1.207804529
+Black Earth Creek,8/8/17,Nfixation_unamended,Wood,2,19.4,18.7,2.158178045,0.599049928
+Black Earth Creek,8/8/17,Denitrification_amended,Macrophyte,3,15.63333333,18.13333333,39.32307127,34.55280827
+Black Earth Creek,8/8/17,Denitrification_amended,Rock,2,17.55,18.05,567.4194776,119.4386664
+Black Earth Creek,8/8/17,Denitrification_amended,Sediment,3,17.66666667,19.06666667,30640.96744,7700.863724
+Black Earth Creek,8/8/17,Denitrification_amended,Wood,2,18.85,18.7,3213.536893,4530.810792
+Black Earth Creek,8/8/17,Denitrification_unamended,Macrophyte,2,15.93333333,18.35,0,0
+Black Earth Creek,8/8/17,Denitrification_unamended,Sediment,3,17.6,18.9,14278.27367,1770.837336
+Black Earth Creek,8/8/17,Denitrification_unamended,Wood,2,18.4,18.65,367.7277554,520.0455789
+Blacktail Deer Creek,7/30/19,Nfixation_unamended,Rock,3,14.1,16,314.1046638,212.6848583
+Blacktail Deer Creek,7/30/19,Nfixation_unamended,Sediment,2,15.3,16.85,1.839406045,0.357387359
+Blacktail Deer Creek,7/30/19,Nfixation_unamended,Wood,2,15.35,17.15,6.684489063,8.831716141
+Blacktail Deer Creek,7/30/19,Denitrification_amended,Rock,0,13.26666667,15.56666667,NA,NA
+Blacktail Deer Creek,7/30/19,Denitrification_amended,Sediment,0,14.75,16.7,NA,NA
+Blacktail Deer Creek,7/30/19,Denitrification_amended,Wood,0,15,17.05,NA,NA
+Blacktail Deer Creek,7/30/19,Denitrification_unamended,Rock,0,14.36666667,16.06666667,NA,NA
+Blacktail Deer Creek,7/30/19,Denitrification_unamended,Sediment,0,15.65,16.6,NA,NA
+Blacktail Deer Creek,7/30/19,Denitrification_unamended,Wood,0,15.35,17.05,NA,NA
+Blaine Creek,8/10/19,Nfixation_unamended,Macrophyte,2,17.2,22,0.216708735,0.212742005
+Blaine Creek,8/10/19,Nfixation_unamended,Rock,3,15.16666667,17.33333333,0.818038485,0.363696313
+Blaine Creek,8/10/19,Nfixation_unamended,Sediment,1,16.5,20.9,0.299563551,NA
+Blaine Creek,8/10/19,Nfixation_unamended,Wood,2,16.5,19,0.159110714,0.22501653
+Blaine Creek,8/10/19,Denitrification_amended,Macrophyte,2,17.5,21.95,0,0
+Blaine Creek,8/10/19,Denitrification_amended,Rock,3,15.5,18.93333333,160.294837,277.6388018
+Blaine Creek,8/10/19,Denitrification_amended,Sediment,1,16.3,21,30117.91556,NA
+Blaine Creek,8/10/19,Denitrification_amended,Wood,2,16.05,20,0,0
+Blaine Creek,8/10/19,Denitrification_unamended,Macrophyte,2,17.4,20.6,0,0
+Blaine Creek,8/10/19,Denitrification_unamended,Rock,2,15.15,17.65,0,0
+Blaine Creek,8/10/19,Denitrification_unamended,Sediment,1,16,20.4,10653.73664,NA
+Blaine Creek,8/10/19,Denitrification_unamended,Wood,1,17,20.35,1140.702287,NA
+Brewery Creek,8/11/17,Nfixation_unamended,Macrophyte,2,15.5,18.4,0,0
+Brewery Creek,8/11/17,Nfixation_unamended,Sediment,3,15.23333333,17.9,0,0
+Brewery Creek,8/11/17,Nfixation_unamended,Wood,2,15.3,16.8,0.597570908,0.845092883
+Brewery Creek,8/11/17,Denitrification_amended,Macrophyte,2,15.45,18.5,70.62319609,99.87628173
+Brewery Creek,8/11/17,Denitrification_amended,Sediment,3,15.33333333,18.46666667,17837.118,12037.38565
+Brewery Creek,8/11/17,Denitrification_amended,Wood,3,15.26666667,17.06666667,1495.504022,1293.756876
+Brewery Creek,8/11/17,Denitrification_unamended,Macrophyte,2,15.4,18.55,796.4703082,157.0839451
+Brewery Creek,8/11/17,Denitrification_unamended,Sediment,3,15.33333333,18.23333333,9070.254169,4460.00202
+Brewery Creek,8/11/17,Denitrification_unamended,Wood,3,15.23333333,16.8,412.1324425,410.209456
+Caribou Creek,7/9/19,Nfixation_unamended,Rock,3,6.233333333,7.333333333,0.153280085,0.265488896
+Caribou Creek,7/9/19,Nfixation_unamended,Sediment,2,7.2,8.15,0.054752522,0.077431759
+Caribou Creek,7/9/19,Nfixation_unamended,Wood,2,7,7.9,0.021976711,0.031079763
+Caribou Creek,7/9/19,Denitrification_amended,Rock,3,6.2,7.5,697.5413924,1208.177132
+Caribou Creek,7/9/19,Denitrification_amended,Sediment,2,6.55,8.05,0,0
+Caribou Creek,7/9/19,Denitrification_amended,Wood,2,6.55,7.7,0,0
+Caribou Creek,7/9/19,Denitrification_unamended,Rock,3,6.233333333,7.566666667,559.220415,492.3993609
+Caribou Creek,7/9/19,Denitrification_unamended,Sediment,2,6.4,7.8,1721.887668,389.456666
+Caribou Creek,7/9/19,Denitrification_unamended,Wood,2,7.1,7.85,1253.199672,1317.389818
+Dowst Cate Forest,8/10/18,Nfixation_unamended,Pebble,2,22.6,23.25,0,0
+Dowst Cate Forest,8/10/18,Nfixation_unamended,Rock,3,22.3,23.13333333,0,0
+Dowst Cate Forest,8/10/18,Nfixation_unamended,Wood,1,22.5,23.5,0,NA
+Dowst Cate Forest,8/10/18,Denitrification_amended,Pebble,2,22.3,23.25,3176.30807,4491.977951
+Dowst Cate Forest,8/10/18,Denitrification_amended,Rock,3,22.23333333,23.13333333,82.82962653,17.76897928
+Dowst Cate Forest,8/10/18,Denitrification_amended,Wood,2,22.6,23.45,228.46658,186.9663032
+Dowst Cate Forest,8/10/18,Denitrification_unamended,Pebble,1,22.6,23.45,171.9844578,NA
+Dowst Cate Forest,8/10/18,Denitrification_unamended,Rock,3,22.3,23.13333333,0,0
+Dowst Cate Forest,8/10/18,Denitrification_unamended,Wood,2,22.55,23.6,0,0
+Eno River,6/4/17,Nfixation_unamended,Clay,1,23.8,25.8,3.626577341,NA
+Eno River,6/4/17,Nfixation_unamended,Rock,2,24.05,27.35,0,0
+Eno River,6/4/17,Nfixation_unamended,Sediment,2,23.5,26.3,4.308373881,2.892617741
+Eno River,6/4/17,Nfixation_unamended,Wood,2,23.9,26.6,0,0
+Eno River,6/4/17,Denitrification_amended,Clay,2,23.75,25.6,0,0
+Eno River,6/4/17,Denitrification_amended,Rock,2,24.05,27.05,0,0
+Eno River,6/4/17,Denitrification_amended,Sediment,3,23.43333333,25.43333333,3457.601453,1267.192052
+Eno River,6/4/17,Denitrification_amended,Wood,2,24.15,27.2,4775.919768,6754.170509
+Eno River,6/4/17,Denitrification_unamended,Clay,2,23.75,25.55,8608.152185,1225.830755
+Eno River,6/4/17,Denitrification_unamended,Sediment,3,23,25.33333333,7794.35105,3334.810611
+Eno River,6/4/17,Denitrification_unamended,Wood,1,24.1,26.55,2450.506126,NA
+Hop Brook,8/15/18,Nfixation_unamended,Rock,3,19.06666667,20.13333333,0,0
+Hop Brook,8/15/18,Nfixation_unamended,Sediment,2,19.55,20.45,0,0
+Hop Brook,8/15/18,Nfixation_unamended,Wood,2,19.85,20.7,0,0
+Hop Brook,8/15/18,Denitrification_amended,Rock,3,18.96666667,20.2,49.47193175,85.68789933
+Hop Brook,8/15/18,Denitrification_amended,Sediment,2,19.6,20.55,2618.63601,3334.006142
+Hop Brook,8/15/18,Denitrification_amended,Wood,2,19.75,20.8,204.7653059,289.5818727
+Hop Brook,8/15/18,Denitrification_unamended,Rock,3,19.06666667,20.26666667,112.4851048,194.8299166
+Hop Brook,8/15/18,Denitrification_unamended,Sediment,2,19.6,20.5,590.5686029,835.1901277
+Hop Brook,8/15/18,Denitrification_unamended,Wood,2,19.8,20.8,33.79663239,47.79565589
+Hubbard Brook,8/7/18,Nfixation_unamended,Bedrock scrape,4,20.225,20.15,0,0
+Hubbard Brook,8/7/18,Nfixation_unamended,Rock,6,20.28333333,20.1,0,0
+Hubbard Brook,8/7/18,Denitrification_amended,Bedrock scrape,2,20,20.25,222.5517884,314.7357575
+Hubbard Brook,8/7/18,Denitrification_amended,Rock,3,19.56666667,20.13333333,9.506765665,16.46620115
+Hubbard Brook,8/7/18,Denitrification_unamended,Bedrock scrape,2,20.15,20.15,106.7752526,0
+Hubbard Brook,8/7/18,Denitrification_unamended,Rock,3,20.4,20.1,24.70151857,22.20405498
+Ichetucknee River,5/31/18,Nfixation_unamended,Macrophyte,3,22.83333333,24.13333333,1.969086268,1.73238497
+Ichetucknee River,5/31/18,Nfixation_unamended,Sediment,2,22.45,24.2,14.60785353,20.65862458
+Ichetucknee River,5/31/18,Nfixation_unamended,Wood,2,22.75,23.6,0.187488233,0.265148402
+Ichetucknee River,5/31/18,Denitrification_amended,Macrophyte,3,22.93333333,24.56666667,45.79899258,39.70344899
+Ichetucknee River,5/31/18,Denitrification_amended,Sediment,2,22.55,23,17866.57199,5229.761716
+Ichetucknee River,5/31/18,Denitrification_amended,Wood,2,23,23.45,14411.69831,20381.21921
+Ichetucknee River,5/31/18,Denitrification_unamended,Macrophyte,3,22.2,24.7,55.74704579,56.70906403
+Ichetucknee River,5/31/18,Denitrification_unamended,Sediment,2,22.95,23.35,4729.557036,3902.829007
+Ichetucknee River,5/31/18,Denitrification_unamended,Wood,2,23,23.35,736.7027527,1041.855024
+Kings Creek,6/13/18,Nfixation_unamended,Rock,2,23.65,23.85,87.17538535,88.26046942
+Kings Creek,6/13/18,Nfixation_unamended,Sediment,3,23.7,24.16666667,38.58678291,28.68366558
+Kings Creek,6/13/18,Nfixation_unamended,Wood,2,23.8,23.9,34.75828345,14.56381567
+Kings Creek,6/13/18,Denitrification_amended,Rock,2,23.55,23.85,7783.925489,8717.686264
+Kings Creek,6/13/18,Denitrification_amended,Sediment,3,23.6,24.13333333,11752.18379,7138.406476
+Kings Creek,6/13/18,Denitrification_amended,Wood,2,23.65,23.9,698.5833233,21.10236028
+Kings Creek,6/13/18,Denitrification_unamended,Rock,2,23.7,23.8,46.02309519,1.064648517
+Kings Creek,6/13/18,Denitrification_unamended,Sediment,3,23.5,24.26666667,1069.977509,1853.255409
+Kings Creek,6/13/18,Denitrification_unamended,Wood,2,23.7,24,22122.74482,30042.24304
+Kings Creek,5/10/19,Nfixation_unamended,Rock,3,12.3,12.7,3.042353277,1.155384563
+Kings Creek,5/10/19,Nfixation_unamended,Sediment,3,12.23333333,13.1,0.406381505,0.53174409
+Kings Creek,5/10/19,Nfixation_unamended,Wood,2,12.3,13.2,0.092303576,0.096383658
+Kings Creek,5/10/19,Denitrification_amended,Rock,3,11.9,12.7,0,0
+Kings Creek,5/10/19,Denitrification_amended,Sediment,3,12,12.96666667,810.2390936,1403.375276
+Kings Creek,5/10/19,Denitrification_amended,Wood,2,12.15,13.3,542.8340371,767.6832574
+Kings Creek,5/10/19,Denitrification_unamended,Rock,3,12.1,12.73333333,0,0
+Kings Creek,5/10/19,Denitrification_unamended,Sediment,3,12.1,13.16666667,0,0
+Kings Creek,5/10/19,Denitrification_unamended,Wood,2,12.3,13.25,219.1612935,259.0088494
+Lower Knowton Fork Red Butte Creek,7/18/17,Nfixation_unamended,Rock,3,10.63333333,12.43333333,0.819983452,1.420253001
+Lower Knowton Fork Red Butte Creek,7/18/17,Nfixation_unamended,Sediment,3,11.66666667,13.6,5.526903868,6.910791165
+Lower Knowton Fork Red Butte Creek,7/18/17,Nfixation_unamended,Wood,2,13.1,12.55,2.794074503,3.951418056
+Lower Knowton Fork Red Butte Creek,7/18/17,Denitrification_amended,Rock,3,10.53333333,12.1,14.75782488,25.56130251
+Lower Knowton Fork Red Butte Creek,7/18/17,Denitrification_amended,Sediment,3,11.9,12.9,9071.699497,8150.225886
+Lower Knowton Fork Red Butte Creek,7/18/17,Denitrification_amended,Wood,2,13.5,12.9,0,0
+Lower Knowton Fork Red Butte Creek,7/18/17,Denitrification_unamended,Rock,2,10.63333333,12.26666667,0,0
+Lower Knowton Fork Red Butte Creek,7/18/17,Denitrification_unamended,Sediment,3,12.26666667,13.36666667,332.0213519,575.0778507
+Lower Knowton Fork Red Butte Creek,7/18/17,Denitrification_unamended,Wood,2,13.2,12.4,9.505719854,13.44311794
+Martha Creek,8/6/19,Nfixation_unamended,Rock,4,16.3,18.3,7.536547469,11.5239555
+Martha Creek,8/6/19,Nfixation_unamended,Sediment,2,17.35,18.5,2.055963745,0.474858228
+Martha Creek,8/6/19,Nfixation_unamended,Wood,2,17.65,18.45,26.11069917,20.93877599
+Martha Creek,8/6/19,Denitrification_amended,Rock,3,15.96666667,18.2,0,0
+Martha Creek,8/6/19,Denitrification_amended,Sediment,2,16.8,18.5,0,0
+Martha Creek,8/6/19,Denitrification_amended,Wood,2,17.05,18.4,804.7595799,1138.101912
+Martha Creek,8/6/19,Denitrification_unamended,Rock,3,16.06666667,17.9,277.8256051,481.2080637
+Martha Creek,8/6/19,Denitrification_unamended,Sediment,2,16.75,18.55,311.0329748,439.8670512
+Martha Creek,8/6/19,Denitrification_unamended,Wood,2,17.55,18.45,77.1821066,109.1519819
+McDiffett Creek,6/12/18,Nfixation_unamended,Rock,3,22.56666667,22.86666667,38.0425563,41.745222
+McDiffett Creek,6/12/18,Nfixation_unamended,Sediment,3,23.13333333,24.1,7.649660471,6.499430996
+McDiffett Creek,6/12/18,Nfixation_unamended,Wood,2,23.35,23.9,8.769329243,0.389303878
+McDiffett Creek,6/12/18,Denitrification_amended,Rock,3,22.5,22.7,364.2092267,487.9959189
+McDiffett Creek,6/12/18,Denitrification_amended,Sediment,3,23.13333333,24.76666667,29208.57102,7611.976136
+McDiffett Creek,6/12/18,Denitrification_amended,Wood,2,23.25,23.9,6975.087541,784.6875985
+McDiffett Creek,6/12/18,Denitrification_unamended,Rock,3,22.73333333,22.96666667,42.70799147,59.52111225
+McDiffett Creek,6/12/18,Denitrification_unamended,Sediment,3,22.9,24.13333333,2353.790307,434.7910897
+McDiffett Creek,6/12/18,Denitrification_unamended,Wood,2,23.25,23.75,697.7412464,986.7551337
+McRae Creek,8/3/19,Nfixation_unamended,Rock,3,10.7,11,0.047685017,0.076428436
+McRae Creek,8/3/19,Nfixation_unamended,Sediment,2,11.15,11.5,0.916990312,0.778772099
+McRae Creek,8/3/19,Nfixation_unamended,Wood,2,11.1,11.6,0.124981568,0.012578342
+McRae Creek,8/3/19,Denitrification_amended,Rock,3,10.6,11.06666667,2073.125833,1919.766324
+McRae Creek,8/3/19,Denitrification_amended,Sediment,2,11,11.5,1398.200703,1977.354398
+McRae Creek,8/3/19,Denitrification_amended,Wood,2,11.15,11.65,0,0
+McRae Creek,8/3/19,Denitrification_unamended,Rock,3,10.73333333,11.03333333,707.5922775,711.4698235
+McRae Creek,8/3/19,Denitrification_unamended,Sediment,2,11.25,11.45,1733.503549,2451.544229
+McRae Creek,8/3/19,Denitrification_unamended,Wood,2,11.2,11.6,2075.405132,2935.066086
+New Hope Creek,6/3/17,Nfixation_unamended,Rock,3,21.4,24.16666667,3.36848728,2.936384392
+New Hope Creek,6/3/17,Nfixation_unamended,Sediment,3,22.23333333,25.53333333,0.923568363,1.599667329
+New Hope Creek,6/3/17,Nfixation_unamended,Wood,2,22.4,24.35,4.115396547,4.189092908
+New Hope Creek,6/3/17,Denitrification_amended,Rock,3,21.4,23.96666667,0,0
+New Hope Creek,6/3/17,Denitrification_amended,Sediment,3,22.23333333,25.33333333,4332.178739,1336.45156
+New Hope Creek,6/3/17,Denitrification_amended,Wood,2,22.4,25,130.6987636,184.8359641
+New Hope Creek,6/3/17,Denitrification_unamended,Rock,3,21.43333333,24.23333333,61.16081445,66.48918374
+New Hope Creek,6/3/17,Denitrification_unamended,Sediment,3,22.23333333,24.66666667,1058.189893,1404.336302
+New Hope Creek,6/3/17,Denitrification_unamended,Wood,2,22.4,24.6,24.56544842,27.24959324
+New Hope Creek,5/27/18,Nfixation_unamended,Rock,3,22.26666667,23.33333333,5.287734915,8.565913436
+New Hope Creek,5/27/18,Nfixation_unamended,Sediment,3,22.46666667,22.6,0.55446338,0.960358745
+New Hope Creek,5/27/18,Nfixation_unamended,Wood,2,22.6,23.3,1.652763746,2.23079604
+New Hope Creek,5/27/18,Denitrification_amended,Rock,3,22.23333333,23.23333333,0,0
+New Hope Creek,5/27/18,Denitrification_amended,Sediment,3,22.36666667,22.66666667,4479.643046,3633.867783
+New Hope Creek,5/27/18,Denitrification_amended,Wood,2,22.7,23.4,1211.661753,460.8633385
+New Hope Creek,5/27/18,Denitrification_unamended,Rock,2,22.4,23.2,0,0
+New Hope Creek,5/27/18,Denitrification_unamended,Sediment,3,22.46666667,22.56666667,1570.303557,240.3806351
+New Hope Creek,5/27/18,Denitrification_unamended,Wood,2,22.85,23.45,65.72604463,92.95066372
+New Hope Creek,5/27/18,Denitrification_unamended,rock,1,22.4,22.9,0,NA
+Pilgrim River,6/21/18,Nfixation_unamended,Rock,2,15.9,17.8,22.52074022,0.922106802
+Pilgrim River,6/21/18,Nfixation_unamended,Sediment,3,15.66666667,17.83333333,6.498826595,7.314000047
+Pilgrim River,6/21/18,Nfixation_unamended,Wood,2,15.2,17.25,3.428484295,4.848608989
+Pilgrim River,6/21/18,Denitrification_amended,Rock,2,14.4,17.35,210.0900236,77.4107735
+Pilgrim River,6/21/18,Denitrification_amended,Sediment,3,14.86666667,17.7,0,0
+Pilgrim River,6/21/18,Denitrification_amended,Wood,2,15.2,17.65,0,0
+Pilgrim River,6/21/18,Denitrification_unamended,Rock,2,15.65,17.8,154.1634149,218.0199922
+Pilgrim River,6/21/18,Denitrification_unamended,Sediment,3,15.73333333,18.16666667,648.7056597,574.0104951
+Pilgrim River,6/21/18,Denitrification_unamended,Wood,2,15.15,17.1,0,0
+Pilgrim River,7/17/18,Nfixation_unamended,Rock,2,18.8,20.5,1.426047932,2.016736326
+Pilgrim River,7/17/18,Nfixation_unamended,Sediment,3,19.13333333,19.93333333,1.644048395,1.423861572
+Pilgrim River,7/17/18,Nfixation_unamended,Wood,2,18.65,19.8,4.15384701,2.304993928
+Pilgrim River,7/17/18,Denitrification_amended,Rock,2,18.25,20.5,120.5050946,14.32629306
+Pilgrim River,7/17/18,Denitrification_amended,Sediment,3,18.83333333,20,1865.493345,1979.508735
+Pilgrim River,7/17/18,Denitrification_amended,Wood,2,18.25,19.95,154.7862319,149.6540405
+Pilgrim River,7/17/18,Denitrification_unamended,Rock,2,18.95,20.7,0,0
+Pilgrim River,7/17/18,Denitrification_unamended,Sediment,3,19.1,20.46666667,1777.112907,2699.673394
+Pilgrim River,7/17/18,Denitrification_unamended,Wood,2,18.35,19.75,55.05918122,58.13181446
+Pilgrim River,6/13/19,Nfixation_unamended,Rock,3,13.16666667,14.7,2.006629031,3.475583434
+Pilgrim River,6/13/19,Nfixation_unamended,Sediment,3,14.23333333,15.53333333,1.973000503,1.479213342
+Pilgrim River,6/13/19,Nfixation_unamended,Wood,2,15.6,16.9,0.345967587,0.489272054
+Pilgrim River,6/13/19,Denitrification_amended,Rock,3,12.26666667,14.43333333,0,0
+Pilgrim River,6/13/19,Denitrification_amended,Sediment,3,13.43333333,15.4,3738.080321,937.3408568
+Pilgrim River,6/13/19,Denitrification_amended,Wood,2,15.3,16.75,378.3149548,535.0181399
+Pilgrim River,6/13/19,Denitrification_unamended,Rock,3,13.4,14.86666667,0,0
+Pilgrim River,6/13/19,Denitrification_unamended,Sediment,3,14,15.53333333,535.9456734,928.2851365
+Pilgrim River,6/13/19,Denitrification_unamended,Wood,2,15.75,17.15,284.6756101,402.5921087
+Pilgrim River,9/9/19,Nfixation_unamended,Rock,2,13.3,14.15,0.881008517,0.489525283
+Pilgrim River,9/9/19,Nfixation_unamended,Sediment,2,13.6,14.4,0,0
+Pilgrim River,9/9/19,Nfixation_unamended,Wood,2,13.7,14.15,0.430849816,0.26307035
+Pilgrim River,9/9/19,Denitrification_amended,Rock,2,12.5,14.2,501.6072083,709.3797169
+Pilgrim River,9/9/19,Denitrification_amended,Sediment,2,12.95,14.7,0,0
+Pilgrim River,9/9/19,Denitrification_amended,Wood,2,13.75,14.3,0,0
+Pilgrim River,9/9/19,Denitrification_unamended,Rock,2,13.65,14.4,760.9510366,1076.147276
+Pilgrim River,9/9/19,Denitrification_unamended,Sediment,2,13.75,14.55,823.2250789,1164.216071
+Pilgrim River,9/9/19,Denitrification_unamended,Wood,2,13.6,14.45,71.64634334,101.3232304
+Poker Creek,7/10/19,Nfixation_unamended,Rock,2,7.6,8.5,0.418723976,0.592165126
+Poker Creek,7/10/19,Nfixation_unamended,Sediment,3,8.466666667,8.966666667,1.558773884,1.605385264
+Poker Creek,7/10/19,Nfixation_unamended,Wood,2,8.35,9,0.952225975,0.176188529
+Poker Creek,7/10/19,Denitrification_amended,Rock,2,7.2,8.6,1183.504523,1673.728148
+Poker Creek,7/10/19,Denitrification_amended,Sediment,3,7.766666667,9,622.8061364,540.7268765
+Poker Creek,7/10/19,Denitrification_amended,Wood,2,8.3,9.05,0,0
+Poker Creek,7/10/19,Denitrification_unamended,Rock,2,7.45,8.55,0,0
+Poker Creek,7/10/19,Denitrification_unamended,Sediment,3,8.166666667,8.966666667,523.2026879,906.2136382
+Poker Creek,7/10/19,Denitrification_unamended,Wood,2,8.6,9.15,0,0
+Pringle Creek,6/9/18,Nfixation_unamended,Pebble,2,26.85,30.95,37.45529078,16.00171517
+Pringle Creek,6/9/18,Nfixation_unamended,Rock,2,26.1,28.6,57.0617377,54.79069661
+Pringle Creek,6/9/18,Nfixation_unamended,Sediment,3,27.3,31,18.09420321,10.2397009
+Pringle Creek,6/9/18,Nfixation_unamended,Wood,2,28.3,30.5,18.27877261,23.28361988
+Pringle Creek,6/9/18,Denitrification_amended,Pebble,2,26.45,31,8957.931519,3175.235567
+Pringle Creek,6/9/18,Denitrification_amended,Rock,2,25.7,28.4,1327.239294,1525.816933
+Pringle Creek,6/9/18,Denitrification_amended,Sediment,3,27.1,30.83333333,12243.12203,4286.22717
+Pringle Creek,6/9/18,Denitrification_amended,Wood,2,28.35,30.65,1071.467208,716.1377933
+Pringle Creek,6/9/18,Denitrification_unamended,Pebble,2,26.45,31.3,1391.882942,583.1197351
+Pringle Creek,6/9/18,Denitrification_unamended,Rock,2,26.15,28.8,0,0
+Pringle Creek,6/9/18,Denitrification_unamended,Sediment,3,27.2,30.93333333,2311.230888,2408.736504
+Pringle Creek,6/9/18,Denitrification_unamended,Wood,2,28.65,30.9,59.32239725,83.89453875
+Quebrada Prieta,3/3/19,Nfixation_unamended,Rock,2,21.95,21.75,0,0
+Quebrada Prieta,3/3/19,Nfixation_unamended,Sediment,2,21.65,21.95,0.100072123,0.141523354
+Quebrada Prieta,3/3/19,Nfixation_unamended,Wood,2,21.6,22.4,0.091046454,0.12875913
+Quebrada Prieta,3/3/19,Denitrification_amended,Rock,2,21.2,21.75,39.45675455,2.605254916
+Quebrada Prieta,3/3/19,Denitrification_amended,Sediment,2,21.7,22.1,458.5009476,179.08385
+Quebrada Prieta,3/3/19,Denitrification_amended,Wood,3,21.46666667,21.86666667,391.5193712,141.888175
+Quebrada Prieta,3/3/19,Denitrification_unamended,Rock,2,22.45,21.95,0,0
+Quebrada Prieta,3/3/19,Denitrification_unamended,Sediment,2,21.55,22.55,9.542408344,13.4950033
+Quebrada Prieta,3/3/19,Denitrification_unamended,Wood,2,21.65,22,36.67680477,27.94287314
+Quebrada Sonadora,3/5/19,Nfixation_unamended,Rock,2,20.95,21.1,0.893786142,1.264004484
+Quebrada Sonadora,3/5/19,Nfixation_unamended,Wood,2,21.4,21.15,0.035667057,0.050440835
+Quebrada Sonadora,3/5/19,Denitrification_amended,Rock,2,20.6,21.1,782.3070949,45.49432613
+Quebrada Sonadora,3/5/19,Denitrification_amended,Wood,2,21.3,21.1,604.055276,854.2631638
+Quebrada Sonadora,3/5/19,Denitrification_unamended,Rock,2,21.25,21.05,412.5270484,395.1270685
+Quebrada Sonadora,3/5/19,Denitrification_unamended,Wood,2,21.4,21,7.085515164,10.02043164
+Rio Cupeyes,2/23/19,Nfixation_unamended,CPOM,1,22.8,22.4,0.014476226,NA
+Rio Cupeyes,2/23/19,Nfixation_unamended,Pebble,2,23,22.45,0.019626044,0.024019606
+Rio Cupeyes,2/23/19,Nfixation_unamended,Rock,3,22.33333333,22.6,0.011855135,0.020533697
+Rio Cupeyes,2/23/19,Denitrification_amended,CPOM,1,22.7,22.4,8204.173989,NA
+Rio Cupeyes,2/23/19,Denitrification_amended,Pebble,2,22.75,22.45,12210.86942,4166.66813
+Rio Cupeyes,2/23/19,Denitrification_amended,Rock,3,22.06666667,22.56666667,9547.037408,1451.738498
+Rio Cupeyes,2/23/19,Denitrification_unamended,CPOM,1,22.8,22.4,8757.499715,NA
+Rio Cupeyes,2/23/19,Denitrification_unamended,Pebble,2,22.85,22.45,7685.167308,52.59424846
+Rio Cupeyes,2/23/19,Denitrification_unamended,Rock,3,22.16666667,22.56666667,9487.408687,4633.821402
+Rio Guillarte,2/21/19,Nfixation_unamended,Algae,1,24.7,23.6,0.682132518,NA
+Rio Guillarte,2/21/19,Nfixation_unamended,CPOM,1,22.8,23.6,0,NA
+Rio Guillarte,2/21/19,Nfixation_unamended,Rock,2,21.6,24.35,0.071401284,0.100976664
+Rio Guillarte,2/21/19,Nfixation_unamended,gravel,1,22.4,23.7,0.802102954,NA
+Rio Guillarte,2/21/19,Nfixation_unamended,rock,1,21.9,24.1,0,NA
+Rio Guillarte,2/21/19,Denitrification_amended,Algae,1,24.7,23.6,0,NA
+Rio Guillarte,2/21/19,Denitrification_amended,CPOM,1,23.1,23.6,15720.54191,NA
+Rio Guillarte,2/21/19,Denitrification_amended,Gravel,1,23.5,23.4,0,NA
+Rio Guillarte,2/21/19,Denitrification_amended,Rock,3,21.4,24.16666667,0,0
+Rio Guillarte,2/21/19,Denitrification_unamended,Algae,1,24,24,111.9659891,NA
+Rio Guillarte,2/21/19,Denitrification_unamended,CPOM,1,22.5,23.6,1662.280731,NA
+Rio Guillarte,2/21/19,Denitrification_unamended,Gravel,1,22.6,23.6,161.7167977,NA
+Rio Guillarte,2/21/19,Denitrification_unamended,Rock,3,21.93333333,24.56666667,0,0
+South Fork Mink Creek,7/27/17,Nfixation_unamended,Macrophyte,2,15.95,16.95,0.401193882,0.37824922
+South Fork Mink Creek,7/27/17,Nfixation_unamended,Rock,4,15.2,17.85,506.2589308,178.4897494
+South Fork Mink Creek,7/27/17,Nfixation_unamended,Sediment,2,16.1,19.6,7.52877456,2.502832372
+South Fork Mink Creek,7/27/17,Nfixation_unamended,Wood,2,15.75,19.2,103.4674563,139.9206434
+South Fork Mink Creek,7/27/17,Denitrification_amended,Macrophyte,2,16.35,17.1,11706.39607,14742.66715
+South Fork Mink Creek,7/27/17,Denitrification_amended,Rock,4,15.075,17.825,11.14972842,22.29945685
+South Fork Mink Creek,7/27/17,Denitrification_amended,Sediment,2,16.6,18.45,3114.73849,3242.724574
+South Fork Mink Creek,7/27/17,Denitrification_amended,Wood,2,15.7,19.35,189.4781882,267.9626236
+South Fork Mink Creek,7/27/17,Denitrification_unamended,Macrophyte,2,16.1,17.7,1193.67905,763.4536697
+South Fork Mink Creek,7/27/17,Denitrification_unamended,Rock,4,15.225,17.975,0,0
+South Fork Mink Creek,7/27/17,Denitrification_unamended,Sediment,2,17.1,19.7,124.5226537,176.1016257
+South Fork Mink Creek,7/27/17,Denitrification_unamended,Wood,2,15.7,19.05,45.93325047,64.95942578
+Sycamore Creek,5/14/19,Nfixation_unamended,Algae,2,25.75,27,0.322111394,0.455534302
+Sycamore Creek,5/14/19,Nfixation_unamended,Rock,2,25.9,27.5,2.631758853,2.40245596
+Sycamore Creek,5/14/19,Nfixation_unamended,Sediment,2,26.55,27.1,0,0
+Sycamore Creek,5/14/19,Nfixation_unamended,Wood,2,25.3,26.65,4.642873165,1.247399909
+Sycamore Creek,5/14/19,Denitrification_amended,Algae,2,23.9,27.6,667.8020439,46.68674794
+Sycamore Creek,5/14/19,Denitrification_amended,Rock,2,23.95,28.05,0,0
+Sycamore Creek,5/14/19,Denitrification_amended,Sediment,2,26.05,26.4,1908.294157,1018.295301
+Sycamore Creek,5/14/19,Denitrification_amended,Wood,2,25.1,27,548.0019745,243.3568176
+Sycamore Creek,5/14/19,Denitrification_unamended,Algae,1,25.35,27.05,0,NA
+Sycamore Creek,5/14/19,Denitrification_unamended,Rock,2,25.45,27.8,973.9345862,1377.351501
+Sycamore Creek,5/14/19,Denitrification_unamended,Sediment,2,26.45,27,0,0
+Wednesday Hill Brook,8/9/18,Nfixation_unamended,Rock Flock,3,20.36666667,20.6,0,0
+Wednesday Hill Brook,8/9/18,Nfixation_unamended,Sediment,2,21.1,20.85,9.218759601,13.03729486
+Wednesday Hill Brook,8/9/18,Nfixation_unamended,Wood,3,20.86666667,20.76666667,2.819508194,2.9326177
+Wednesday Hill Brook,8/9/18,Denitrification_amended,Rock Flock,3,20.26666667,20.76666667,181.7232274,307.0801713
+Wednesday Hill Brook,8/9/18,Denitrification_amended,Sediment,2,21.15,20.85,1467.329929,1631.028957
+Wednesday Hill Brook,8/9/18,Denitrification_amended,Wood,3,20.8,21,1632.106018,2540.565204
+Wednesday Hill Brook,8/9/18,Denitrification_unamended,Rock Flock,3,20.4,20.6,17.94398936,31.07990127
+Wednesday Hill Brook,8/9/18,Denitrification_unamended,Sediment,2,20.75,20.85,1065.148815,1506.347901
+Wednesday Hill Brook,8/9/18,Denitrification_unamended,Wood,3,21.2,20.93333333,662.4699783,592.120558
+Wet Beaver Creek,5/16/19,Nfixation_unamended,Rock,3,18.33333333,20.2,31.78165211,19.33660903
+Wet Beaver Creek,5/16/19,Nfixation_unamended,Sediment,2,19,20.8,0.496435626,0.026950879
+Wet Beaver Creek,5/16/19,Nfixation_unamended,Wood,2,18.2,20.4,6.972728073,5.51153772
+Wet Beaver Creek,5/16/19,Denitrification_amended,Rock,3,17.46666667,20.1,0,0
+Wet Beaver Creek,5/16/19,Denitrification_amended,Sediment,2,18.95,21.15,149.097606,210.8558565
+Wet Beaver Creek,5/16/19,Denitrification_amended,Wood,2,17.95,20.55,0,0
+Wet Beaver Creek,5/16/19,Denitrification_unamended,Rock,2,18.35,20.15,701.0321021,991.4091065
+Wet Beaver Creek,5/16/19,Denitrification_unamended,Sediment,2,19.45,20.35,1057.256304,1495.186204
+Wet Beaver Creek,5/16/19,Denitrification_unamended,Wood,2,18.5,20.3,390.2956361,551.9613819
