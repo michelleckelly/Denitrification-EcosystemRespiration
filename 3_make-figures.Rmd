@@ -88,11 +88,6 @@ CAREERmatrix$ER_daily_mean[CAREERmatrix$Denitrification_amended_mgNm2hr_mean >=
 CAREERmatrix %>%
   filter(CAREERmatrix$ER_daily_mean < 1)
 sum(!is.na(CAREERmatrix$ER_daily_mean))
-
-
-mod <- lm(ER_daily_mean ~ Denitrification_amended_mgNm2hr_mean, 
-          data = CAREERmatrix)
-summary(mod)
 ```
 
 # Conceptual figure for scale
@@ -471,6 +466,17 @@ ggplot(data = CAREERmatrix, aes(x = ER_daily_mean,
 
 ggsave(filename = "outputs/figure_denit-ER_boxplots_scatterplot.png",
        width = 4.5, height = 4.5, units = "in", dpi = 300)
+
+## Get Spearman correlation info ###############################################
+# Get paired data points only
+cor_data <- 
+  CAREERmatrix %>%
+  select(ER_daily_mean, Denitrification_amended_mgNm2hr_mean) %>%
+  filter(complete.cases(.))
+
+cor.test(cor_data$ER_daily_mean,
+           cor_data$Denitrification_amended_mgNm2hr_mean, 
+           method = "spearman", exact = FALSE)
 ```
 
 ```{r Fig6 variableImportance denitrification}
